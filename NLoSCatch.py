@@ -32,7 +32,7 @@ class RSSIAndDisData:
 
 
 # 打开串口
-ser = serial.Serial('COM10', 115200, parity=serial.PARITY_NONE, stopbits=1, bytesize=8)
+ser = serial.Serial('COM11', 115200, parity=serial.PARITY_NONE, stopbits=1, bytesize=8)
 
 try:
     while True:
