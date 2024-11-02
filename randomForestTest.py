@@ -5,26 +5,30 @@ import glob
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 import joblib
 from sklearn.model_selection import train_test_split
+from config import *
+import numpy as np
 
 
 def train_model():
     # 1. 创建分类器
-    clf = RandomForestClassifier(n_estimators=100, n_jobs=2)
+    clf = RandomForestClassifier(n_estimators=100, n_jobs=4)
     # 2. 训练模型
     clf.fit(X_train, y_train)
 
     execute_test(clf)
+    #random_test()
     # 保存模型
     # 假设 clf 是已训练好的随机森林模型
-    joblib.dump(clf, 'random_forest_model_test.starry')
+    joblib.dump(clf, NLOS_MODEL_NAME)
 
 
 def test_model():
     # 加载模型
-    clf_loaded = joblib.load('random_forest_model_test.starry')
+    clf_loaded = joblib.load(NLOS_MODEL_NAME)
 
     # 进行预测
     execute_test(clf_loaded)
+    #random_test()
 
 
 def execute_test(clf):
@@ -41,6 +45,19 @@ def execute_test(clf):
 
     print("混淆矩阵:")
     print(confusion_matrix(y_test, y_pred))
+
+
+def random_test():
+    num_classes = len(np.unique(y_test))  # 获取类别数量
+    y_pred_random = np.random.randint(0, num_classes, size=y_test.shape)  # 生成随机预测
+    accuracy_random = accuracy_score(y_test, y_pred_random)
+    print(f"随机预测准确率: {accuracy_random:.2f}")
+
+    print("随机预测分类报告:")
+    print(classification_report(y_test, y_pred_random))
+
+    print("随机预测混淆矩阵:")
+    print(confusion_matrix(y_test, y_pred_random))
 
 
 if __name__ == '__main__':
@@ -60,8 +77,8 @@ if __name__ == '__main__':
     X = df[features]  # 目标变量
 
     # 划分训练集和测试集
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.4)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
     # print(X_train, y_train)
 
-    train_model()
-    # test_model()
+    # train_model()
+    test_model()

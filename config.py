@@ -28,7 +28,12 @@ W_DATA_FILE_NAME = "data/data9_21_test1.xls"
 R_DATA_FILE_NAME = "data/data_demo1.xls"
 
 # NLoS采集数据
-NLOS_DATA_NAME = "data/nlos_test1.xlsx"
+NLOS_DATA_NAME = "nlos dataset/nlos case5.csv"
+# 是否处于NLoS
+IN_NLOS_FLAG = True
+
+# NLoS识别训练模型名称
+NLOS_MODEL_NAME = "random_forest_model_test.starry"
 
 # 是否启用构建与校正矩形模块
 BUILD_RECT_FLAG = True

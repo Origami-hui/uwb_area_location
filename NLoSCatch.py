@@ -1,7 +1,8 @@
-import socket
-import threading
+import pandas as pd
+import os
 
 import serial
+import serial.tools.list_ports
 import openpyxl
 from config import *
 
@@ -17,8 +18,14 @@ class RSSIAndDisData:
         self.dis = recv_data[3]
 
         try:
-            self.wb = openpyxl.load_workbook(NLOS_DATA_NAME)
-            self.ws = self.wb.active
+            # 检查 CSV 文件是否存在
+            if os.path.exists(NLOS_DATA_NAME):
+                # 读取 CSV 文件
+                self.df = pd.read_csv(NLOS_DATA_NAME)
+            else:
+                # 创建一个空的 DataFrame
+                self.df = pd.DataFrame(columns=['tx', 'rx_rssi', 'fp_rssi', 'range', 'nlos'])
+
         except FileNotFoundError:
             self.wb = openpyxl.Workbook(NLOS_DATA_NAME)
             self.ws = self.wb.create_sheet('rssi_and_dis_data')
@@ -27,8 +34,22 @@ class RSSIAndDisData:
         print(self.tagAddr, ':', self.rx_rssi, ':', self.fp_rssi, ':', self.dis)
 
     def save_data(self):
-        self.ws.append([self.tagAddr, self.rx_rssi, self.fp_rssi, self.dis])
-        self.wb.save(NLOS_DATA_NAME)
+        new_data = {'tx': self.tagAddr, 'rx_rssi': self.rx_rssi, 'fp_rssi': self.fp_rssi,
+                    'range': self.dis, 'nlos': 1 if IN_NLOS_FLAG else 0}
+        self.df = self.df.append(new_data, ignore_index=True)
+
+        # 保存 DataFrame 到 CSV 文件
+        self.df.to_csv(NLOS_DATA_NAME, index=False)
+
+
+def find_serial_port(vendor_id=None, product_id=None):
+    ports = serial.tools.list_ports.comports()
+    for port in ports:
+        # 检查设备的 vendor_id 和 product_id（可选）
+        if (vendor_id is None and product_id is None) or \
+           (port.vid == vendor_id and port.pid == product_id):
+            return port.device  # 返回找到的串口号
+    return None  # 没有找到符合条件的串口
 
 
 # 打开串口
