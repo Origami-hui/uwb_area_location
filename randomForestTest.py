@@ -11,12 +11,11 @@ import numpy as np
 
 def train_model():
     # 1. 创建分类器
-    clf = RandomForestClassifier(n_estimators=100, n_jobs=4)
+    clf = RandomForestClassifier(n_estimators=10, n_jobs=4)
     # 2. 训练模型
     clf.fit(X_train, y_train)
 
-    execute_test(clf)
-    #random_test()
+    execute_test(clf, X_val, y_val)
     # 保存模型
     # 假设 clf 是已训练好的随机森林模型
     joblib.dump(clf, NLOS_MODEL_NAME)
@@ -27,24 +26,23 @@ def test_model():
     clf_loaded = joblib.load(NLOS_MODEL_NAME)
 
     # 进行预测
-    execute_test(clf_loaded)
-    #random_test()
+    execute_test(clf_loaded, X_test, y_test)
 
 
-def execute_test(clf):
+def execute_test(clf, X, y):
     # 3. 使用测试集进行预测
-    y_pred = clf.predict(X_test)
+    y_pred = clf.predict(X)
 
     # 4. 评估模型性能
-    accuracy = accuracy_score(y_test, y_pred)
+    accuracy = accuracy_score(y, y_pred)
     print(f"模型准确率: {accuracy:.2f}")
 
     # 5. 进一步查看分类报告和混淆矩阵
     print("分类报告:")
-    print(classification_report(y_test, y_pred))
+    print(classification_report(y, y_pred))
 
     print("混淆矩阵:")
-    print(confusion_matrix(y_test, y_pred))
+    print(confusion_matrix(y, y_pred))
 
 
 def random_test():
@@ -76,9 +74,10 @@ if __name__ == '__main__':
     features = df.columns[1:3]
     X = df[features]  # 目标变量
 
-    # 划分训练集和测试集
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
-    # print(X_train, y_train)
+    # 划分训练集、验证集和测试集
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.4)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5)
 
-    # train_model()
+    train_model()
     test_model()
+    random_test()
