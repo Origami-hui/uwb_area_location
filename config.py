@@ -22,9 +22,9 @@ HAVE_HUM = False
 HUM_NUM = 1
 
 # 是否采集数据（True为采集数据，False为使用数据集测试）
-SAVE_DATA_FLAG = False
+SAVE_DATA_FLAG = True
 # 数据表名称（写与读）
-W_DATA_FILE_NAME = "data/data9_21_test1.xls"
+W_DATA_FILE_NAME = "data/data11_14_test1.xls"
 R_DATA_FILE_NAME = "data/data_demo1.xls"
 
 # NLoS采集数据

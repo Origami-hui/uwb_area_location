@@ -1,17 +1,10 @@
 # -*- coding: utf-8 -*-
-import math
-import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-import numpy as np
-import xlwt
+import matplotlib.pyplot as plt
 import pandas as pd
-import time
-from utils import *
-from config import *
-from TDOAInterface import *
-from TWRInterface import *
-from config import *
+
 from EKF import *
+from TWRInterface import *
 
 # 储存全局变量
 
@@ -27,6 +20,11 @@ elif RX_NUM == 4:
     min_y = min(rx1[1], rx2[1], rx3[1], rx4[1])
     max_x = max(rx1[0], rx2[0], rx3[0], rx4[0])
     max_y = max(rx1[1], rx2[1], rx3[1], rx4[1])
+
+# imu测量加速度
+imu_ax = [0 for _ in range(TX_NUM)]
+imu_ay = [0 for _ in range(TX_NUM)]
+imu_az = [0 for _ in range(TX_NUM)]
 
 # 当前观测坐标
 obsX, obsY = [[] for _ in range(TX_NUM)], [[] for _ in range(TX_NUM)]
@@ -78,20 +76,23 @@ towards_list = []  # 车身转向列表
 
 avg_dis_diff = []
 
+
 def detection(tag_id, x, y):
     global unitized_dx, unitized_dy, ex_x, ex_y, obsX, obsY, re_x, re_y, warnFlag, \
         pre_cx, pre_cy, STR_FLAG, Martex_list, S_list, towards_list, org_x, org_y, avg_dis_diff
 
     if len(obsX[tag_id - TX_STR_NUM]) > 1:
         obsV[tag_id - TX_STR_NUM].append(math.sqrt((obsX[tag_id - TX_STR_NUM][-1] - obsX[tag_id - TX_STR_NUM][-2]) ** 2
-                                                   + (obsY[tag_id - TX_STR_NUM][-1] - obsY[tag_id - TX_STR_NUM][-2]) ** 2))
+                                                   + (obsY[tag_id - TX_STR_NUM][-1] - obsY[tag_id - TX_STR_NUM][
+            -2]) ** 2))
     else:
         obsV[tag_id - TX_STR_NUM].append(0.0)
     if tag_id <= TX_STR_NUM + TX_NUM - HUM_NUM:
         if len(towards_list) > 0:
             obsTheta[tag_id - TX_STR_NUM].append(towards_list[-1])
             if len(obsTheta) > 1:
-                obsOmiga[tag_id - TX_STR_NUM].append(obsTheta[tag_id - TX_STR_NUM][-1] - obsTheta[tag_id - TX_STR_NUM][-2])
+                obsOmiga[tag_id - TX_STR_NUM].append(
+                    obsTheta[tag_id - TX_STR_NUM][-1] - obsTheta[tag_id - TX_STR_NUM][-2])
             else:
                 obsOmiga[tag_id - TX_STR_NUM].append(0)
         else:
@@ -108,14 +109,14 @@ def detection(tag_id, x, y):
         # 用卡尔曼滤波预测并重新赋值
         if HAVE_HUM and tag_id > TX_STR_NUM + TX_NUM - HUM_NUM:
             # 人员标签
-            x, y = kalman_filter(obsX[tag_id-TX_STR_NUM], obsY[tag_id-TX_STR_NUM])
+            x, y = kalman_filter(obsX[tag_id - TX_STR_NUM], obsY[tag_id - TX_STR_NUM])
         print("重新赋值为：", x, y)
         return
 
     if FILTER_FLAG and len(obsX[tag_id - TX_STR_NUM]) >= 1 and tag_id <= TX_STR_NUM + TX_NUM - HUM_NUM:
         # 对于车辆标签，执行扩展卡尔曼滤波，返回预测
-        tx, ty = ekf(tag_id, x, y, obsV[tag_id - TX_STR_NUM][-1], obsTheta[tag_id-TX_STR_NUM][-1],
-                     obsOmiga[tag_id-TX_STR_NUM][-1])
+        tx, ty = ekf(tag_id, x, y, obsV[tag_id - TX_STR_NUM][-1], obsTheta[tag_id - TX_STR_NUM][-1],
+                     obsOmiga[tag_id - TX_STR_NUM][-1])
         # tx, ty = kalman_filter(obsX[tag_id - TX_STR_NUM], obsY[tag_id - TX_STR_NUM])
         dis = math.sqrt((tx - x) ** 2 + (ty - y) ** 2)
 
@@ -127,8 +128,8 @@ def detection(tag_id, x, y):
             x = (x + tx) / 2
             y = (y + ty) / 2
 
-        resetState(tag_id, x, y, obsV[tag_id - TX_STR_NUM][-1], obsTheta[tag_id-TX_STR_NUM][-1],
-                     obsOmiga[tag_id-TX_STR_NUM][-1])
+        resetState(tag_id, x, y, obsV[tag_id - TX_STR_NUM][-1], obsTheta[tag_id - TX_STR_NUM][-1],
+                   obsOmiga[tag_id - TX_STR_NUM][-1])
 
     obsX[tag_id - TX_STR_NUM].append(x)
     obsY[tag_id - TX_STR_NUM].append(y)
@@ -260,7 +261,7 @@ def plot_update(i):
         tup = tuple(each for each in sc)
     elif CAR_TX_RENDER_FLAG == False and HAVE_HUM:
         sc = [[]]
-        if (len(X_copy) > 4):
+        if len(X_copy) > 4:
             sc[0] = plt.scatter(X_copy[4][-1:], Y_copy[4][-1:], c=c_list[4])
 
         tup = tuple(each for each in sc)
@@ -268,7 +269,7 @@ def plot_update(i):
     if RX_NUM == 3:
         ini = plt.scatter([rx1[0], rx2[0], rx3[0]], [rx1[1], rx2[1], rx3[1]], c="k")
     else:
-        ini = plt.scatter([rx1[0], rx2[0], rx3[0], rx4[0]], \
+        ini = plt.scatter([rx1[0], rx2[0], rx3[0], rx4[0]],
                           [rx1[1], rx2[1], rx3[1], rx4[1]], c="k")
     tup += (ini,)
     # print(re_x)
@@ -358,18 +359,6 @@ def dispose_client_request(client, tcp_client_address=0):
         # 循环接收和发送消息
         while True:
 
-            # recv_data = udp_client.recv(128)
-            # # 有消息就回复数据，如果消息长度为0表示客户端下线了
-            # if recv_data:
-
-            #     recv_data = bytes(recv_data)
-            #     print(recv_data)
-            #     decode(data=recv_data)
-
-            # else:
-            #     udp_client.sendto(b"Good bye!\n")
-            #     udp_client.close()
-            #     break
             recv_data = client.recv(128)
             # 有消息就回复数据，如果消息长度为0表示客户端下线了
             if recv_data:
@@ -378,13 +367,24 @@ def dispose_client_request(client, tcp_client_address=0):
 
                 if len(recv_data) % 16 == 0:
                     # print((int)(len(recv_data)/16))
-                    for i in range((int)(len(recv_data) / 16)):
-                        decode(data=recv_data[i * 16: 16 + i * 16])
+                    for k in range(int(len(recv_data) / 16)):
+                        decode(data=recv_data[k * 16: 16 + k * 16])
 
             else:
                 print("%s 客户端下线了.")
                 client.close()
                 break
+
+
+def handle_uart_data():
+    ser = serial.Serial('COM7', 115200, parity=serial.PARITY_NONE, stopbits=1, bytesize=8)
+
+    while True:
+        data = ser.read(29)
+        data = bytes(data)
+        print(len(data))
+        decode_with_extension_data(data)
+
 
 
 def visualization():

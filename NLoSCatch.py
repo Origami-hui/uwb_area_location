@@ -82,6 +82,14 @@ try:
         rssiAndDisData.save_data()
         #rssiAndDisData.pending_nlos()
 
+        # data = ser.read(29)
+        # data = bytes(data)
+        #
+        # # result = data.decode().strip().split(':')
+        # for i in range(len(data)):
+        #     print(i, data[i])
+        # print("**********************")
+
 except KeyboardInterrupt:
     # 捕获Ctrl+C中断信号，关闭串口
     ser.close()

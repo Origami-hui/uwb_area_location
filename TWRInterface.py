@@ -8,12 +8,9 @@ def decode(data):
     global warnFlag
 
     # 解析数据
-    # print(data)
     if len(data) != 16:
         print('error len data: ', len(data))
         return
-
-    dis_list = []
     tag_id = data[3]
 
     if tag_id >= TX_NUM + TX_STR_NUM:
@@ -41,6 +38,32 @@ def decode(data):
 
         if SAVE_DATA_FLAG:
             src.save_data(tag_id, tx_location)
+
+
+def decode_with_extension_data(data):
+    if len(data) < 29:
+        return
+
+    tag_id = data[3]
+
+    dis0 = (data[6] + data[7] * 256) / 100
+    dis1 = (data[8] + data[9] * 256) / 100
+    dis2 = (data[10] + data[11] * 256) / 100
+
+    dis_list = [dis0, dis1, dis2]
+
+    print(tag_id, dis_list)
+
+    fp_rssi0 = -(data[12] + data[13] * 256) / 100
+    fp_rssi1 = -(data[14] + data[15] * 256) / 100
+    fp_rssi2 = -(data[16] + data[17] * 256) / 100
+
+    rx_rssi0 = -(data[18] + data[19] * 256) / 100
+    rx_rssi1 = -(data[20] + data[21] * 256) / 100
+    rx_rssi2 = -(data[22] + data[23] * 256) / 100
+
+    print(fp_rssi0, fp_rssi1, fp_rssi2)
+    print(rx_rssi0, rx_rssi1, rx_rssi2)
 
 
 def cul_tx_location(tag_id, dis_list):
