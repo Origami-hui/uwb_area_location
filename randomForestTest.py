@@ -26,6 +26,7 @@ def test_model():
     clf_loaded = joblib.load(NLOS_MODEL_NAME)
 
     # 进行预测
+    print("X_test", X_test)
     execute_test(clf_loaded, X_test, y_test)
 
 
@@ -60,6 +61,7 @@ def random_test():
 
 if __name__ == '__main__':
 
+    #file_paths = glob.glob(os.path.join('nlos dataset', 'nlos case1108-3.csv'))
     file_paths = glob.glob(os.path.join('nlos dataset', '*.csv'))
 
     # 读取并合并所有 CSV 文件
@@ -71,13 +73,22 @@ if __name__ == '__main__':
 
     # 分离特征和目标变量（假设目标变量名为 'target'）
     y = df[df.columns[4]]
-    features = df.columns[1:3]
+    features = df.columns[1:4]
     X = df[features]  # 目标变量
+
+    # counts = y.value_counts()
+    #
+    # # 获取 0 和 1 的个数
+    # count_0 = counts.get(0, 0)  # 防止没有 0 时抛出 KeyError
+    # count_1 = counts.get(1, 0)  # 防止没有 1 时抛出 KeyError
+    #
+    # print(f"0 的个数: {count_0}")
+    # print(f"1 的个数: {count_1}")
 
     # 划分训练集、验证集和测试集
     X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.4)
     X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5)
 
-    train_model()
+    #train_model()
     test_model()
-    random_test()
+    # random_test()

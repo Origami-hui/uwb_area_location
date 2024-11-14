@@ -28,7 +28,7 @@ W_DATA_FILE_NAME = "data/data9_21_test1.xls"
 R_DATA_FILE_NAME = "data/data_demo1.xls"
 
 # NLoS采集数据
-NLOS_DATA_NAME = "nlos dataset/nlos case5.csv"
+NLOS_DATA_NAME = "nlos dataset/nlos case1108-3.csv"
 # 是否处于NLoS
 IN_NLOS_FLAG = True
 

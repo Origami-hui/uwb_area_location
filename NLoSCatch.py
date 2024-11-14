@@ -3,6 +3,7 @@ import os
 
 import serial
 import serial.tools.list_ports
+import joblib
 import openpyxl
 from config import *
 
@@ -36,10 +37,23 @@ class RSSIAndDisData:
     def save_data(self):
         new_data = {'tx': self.tagAddr, 'rx_rssi': self.rx_rssi, 'fp_rssi': self.fp_rssi,
                     'range': self.dis, 'nlos': 1 if IN_NLOS_FLAG else 0}
-        self.df = self.df.append(new_data, ignore_index=True)
+        self.df = self.df._append(new_data, ignore_index=True)
 
         # 保存 DataFrame 到 CSV 文件
         self.df.to_csv(NLOS_DATA_NAME, index=False)
+
+    def pending_nlos(self):
+        single_sample = {
+            'rx_rssi': self.rx_rssi,
+            'fp_rssi': self.fp_rssi,
+            'range': self.dis
+        }
+
+        X = pd.DataFrame([single_sample])
+
+        clf_loaded = joblib.load(NLOS_MODEL_NAME)
+        y_pred = clf_loaded.predict(X)
+        print(y_pred)
 
 
 def find_serial_port(vendor_id=None, product_id=None):
@@ -53,7 +67,7 @@ def find_serial_port(vendor_id=None, product_id=None):
 
 
 # 打开串口
-ser = serial.Serial('COM11', 115200, parity=serial.PARITY_NONE, stopbits=1, bytesize=8)
+ser = serial.Serial('COM6', 115200, parity=serial.PARITY_NONE, stopbits=1, bytesize=8)
 
 try:
     while True:
@@ -66,6 +80,7 @@ try:
         # 处理数据
         rssiAndDisData.print()
         rssiAndDisData.save_data()
+        #rssiAndDisData.pending_nlos()
 
 except KeyboardInterrupt:
     # 捕获Ctrl+C中断信号，关闭串口
