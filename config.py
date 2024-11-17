@@ -5,6 +5,9 @@ C = 299702547
 # 每个时间戳的间隔时间
 Per_Stamp = 17.2074 / (2 ** 40)  # 秒
 
+# 每个标签的定位频率
+LOCATION_FREQ = 2
+
 # 车辆长宽信息
 CAR_WIDTH = 1.5
 CAR_LENGTH = 3.0
@@ -13,11 +16,11 @@ CAR_LENGTH = 3.0
 RX_NUM = 3
 
 # 标签数量（车辆标签与人员标签之和）
-TX_NUM = 4
+TX_NUM = 5
 # 车辆标签起始编号
 TX_STR_NUM = 5
 # 是否有人员标签
-HAVE_HUM = False
+HAVE_HUM = True
 # 人员数量
 HUM_NUM = 1
 

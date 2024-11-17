@@ -58,7 +58,7 @@ if __name__ == '__main__':
         s.listen(5)
         print('正在等待预警模块连接.....\n')
         client,client_address = s.accept()
-        print('预警模块接入',client_address)
+        print('预警模块接入', client_address)
         warn = threading.Thread(target=src.warnSystem, args=(client,))
         warn.start()
 

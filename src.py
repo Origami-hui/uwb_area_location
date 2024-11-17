@@ -2,6 +2,7 @@
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import pandas as pd
+import xlwt as xlwt
 
 from EKF import *
 from TWRInterface import *
@@ -20,11 +21,6 @@ elif RX_NUM == 4:
     min_y = min(rx1[1], rx2[1], rx3[1], rx4[1])
     max_x = max(rx1[0], rx2[0], rx3[0], rx4[0])
     max_y = max(rx1[1], rx2[1], rx3[1], rx4[1])
-
-# imu测量加速度
-imu_ax = [0 for _ in range(TX_NUM)]
-imu_ay = [0 for _ in range(TX_NUM)]
-imu_az = [0 for _ in range(TX_NUM)]
 
 # 当前观测坐标
 obsX, obsY = [[] for _ in range(TX_NUM)], [[] for _ in range(TX_NUM)]
@@ -70,7 +66,7 @@ warnFlag = True
 
 STR_FLAG = False
 
-Martex_list = [[[], []] for _ in range(4)]
+matrix_list = [[[], []] for _ in range(4)]
 S_list = []  # 储存统计的抖动方差
 towards_list = []  # 车身转向列表
 
@@ -79,7 +75,7 @@ avg_dis_diff = []
 
 def detection(tag_id, x, y):
     global unitized_dx, unitized_dy, ex_x, ex_y, obsX, obsY, re_x, re_y, warnFlag, \
-        pre_cx, pre_cy, STR_FLAG, Martex_list, S_list, towards_list, org_x, org_y, avg_dis_diff
+        pre_cx, pre_cy, STR_FLAG, matrix_list, S_list, towards_list, org_x, org_y, avg_dis_diff
 
     if len(obsX[tag_id - TX_STR_NUM]) > 1:
         obsV[tag_id - TX_STR_NUM].append(math.sqrt((obsX[tag_id - TX_STR_NUM][-1] - obsX[tag_id - TX_STR_NUM][-2]) ** 2
@@ -87,7 +83,7 @@ def detection(tag_id, x, y):
             -2]) ** 2))
     else:
         obsV[tag_id - TX_STR_NUM].append(0.0)
-    if tag_id <= TX_STR_NUM + TX_NUM - HUM_NUM:
+    if tag_id < TX_STR_NUM + TX_NUM - HUM_NUM:
         if len(towards_list) > 0:
             obsTheta[tag_id - TX_STR_NUM].append(towards_list[-1])
             if len(obsTheta) > 1:
@@ -173,10 +169,10 @@ def detection(tag_id, x, y):
         print("抖动方差：", sum(shakeList) / len(shakeList))
         totalShake = np.min(shakeList)  # 车辆标签位置抖动值
 
-        if (cur_cx - pre_cx != 0 or cur_cy - pre_cy != 0):
+        if cur_cx - pre_cx != 0 or cur_cy - pre_cy != 0:
             STR_FLAG = True
 
-        if (pre_cx != 0 and STR_FLAG and TOWARDS_COR_FLAG):
+        if pre_cx != 0 and STR_FLAG and TOWARDS_COR_FLAG:
             # 如果存在偏移，且上一车辆中心区域不为空，则进行转向矫正，否则不矫正
             re_x, re_y, unitized_dx, unitized_dy = towardsVDir(totalShake, re_x_temp, re_y_temp, cur_cx - pre_cx,
                                                                cur_cy - pre_cy)
@@ -217,17 +213,38 @@ def detection(tag_id, x, y):
 
         # 如果有人员标签，且当前解算坐标的标签就是人员标签，进行碰撞检测
         if HAVE_HUM and tag_id > TX_STR_NUM + TX_NUM - HUM_NUM:
-            ex_x, ex_y, isSave = collisionDetection(re_x, re_y, x, y)
+            ex_x, ex_y, is_save = collisionDetection(re_x, re_y, x, y)
             # print("当前安全情况：", isSave)
-            warnFlag = isSave
-            return isSave
+            warnFlag = is_save
+            return is_save
 
-    # elif server.BUILD_RECT_FLAG and have_data:
-    #     # 构建三角形或直线，用于测试
-    #     re_x,re_y = buildAnddetection.build_rectangle(obsX, obsY, TX_NUM-server.HAVE_HUM*HUM_NUM)
-    #     if server.HAVE_HUM and tag_id >= server.TX_STR_NUM + TX_NUM - HUM_NUM:
-    #         ex_x, ex_y, isSave = buildAnddetection.collisionDetection(re_x, re_y, x, y)
-    #         print("当前安全情况：", isSave)
+
+def merge_location(tag_id, tx_location, imu_acc, nlos_num):
+    if len(obsX[tag_id - TX_STR_NUM]) > 1:
+        print(obsX[tag_id - TX_STR_NUM][-1], obsY[tag_id - TX_STR_NUM][-1])
+        s_temp = [(obsX[tag_id - TX_STR_NUM][-1] - obsX[tag_id - TX_STR_NUM][-2]) * LOCATION_FREQ,
+                  (obsY[tag_id - TX_STR_NUM][-1] - obsY[tag_id - TX_STR_NUM][-2]) * LOCATION_FREQ]
+        v_temp = [obsX[tag_id - TX_STR_NUM][-1] + s_temp[0] / LOCATION_FREQ + 0.5 * imu_acc[0] / LOCATION_FREQ ** 2,
+                  obsY[tag_id - TX_STR_NUM][-1] + s_temp[1] / LOCATION_FREQ + 0.5 * imu_acc[1] / LOCATION_FREQ ** 2]
+        # 根据处于nlos的信号数量决定最终坐标点到虚拟点和定位点的权重
+        weight = cul_weight(nlos_num)
+        return [v_temp[0] + weight * (tx_location[0] - v_temp[0]), v_temp[1] + weight * (tx_location[1] - v_temp[1])]
+
+    elif len(obsX[tag_id - TX_STR_NUM]) == 1:
+        # 如果缓存池只有一个数据，直接用这个数据返回
+        return [obsX[tag_id - TX_STR_NUM][0], obsY[tag_id - TX_STR_NUM][0]]
+
+    return tx_location
+
+
+def cul_weight(nlos_num):
+    # 处于nlos的信号越多，最终坐标越往虚拟坐标点靠近（全nlos直接取虚拟坐标点）
+    if nlos_num == 3:
+        return 0
+    elif nlos_num == 2:
+        return 0.25
+    else:
+        return 0.5
 
 
 def plot_init():
@@ -238,7 +255,7 @@ def plot_init():
 
 
 def plot_update(i):
-    global unitized_dx, unitized_dy, obsX, obsY, TX_NUM, \
+    global unitized_dx, unitized_dy, obsX, obsY, \
         re_x, re_y, ex_x, ex_y, org_x, org_y
 
     # 当前更新绘图方法，后续可进行轨迹优化
@@ -256,10 +273,10 @@ def plot_update(i):
 
     if CAR_TX_RENDER_FLAG:
         sc = [_ for _ in range(TX_NUM)]
-        for i in range(TX_NUM):
-            sc[i] = plt.scatter(X_copy[i][-1:], Y_copy[i][-1:], c=c_list[i])
+        for k in range(TX_NUM):
+            sc[k] = plt.scatter(X_copy[k][-1:], Y_copy[k][-1:], c=c_list[k])
         tup = tuple(each for each in sc)
-    elif CAR_TX_RENDER_FLAG == False and HAVE_HUM:
+    elif CAR_TX_RENDER_FLAG is False and HAVE_HUM:
         sc = [[]]
         if len(X_copy) > 4:
             sc[0] = plt.scatter(X_copy[4][-1:], Y_copy[4][-1:], c=c_list[4])
@@ -377,14 +394,12 @@ def dispose_client_request(client, tcp_client_address=0):
 
 
 def handle_uart_data():
-    ser = serial.Serial('COM7', 115200, parity=serial.PARITY_NONE, stopbits=1, bytesize=8)
+    ser = serial.Serial('COM6', 115200, parity=serial.PARITY_NONE, stopbits=1, bytesize=8)
 
     while True:
-        data = ser.read(29)
+        data = ser.read(32)
         data = bytes(data)
-        print(len(data))
         decode_with_extension_data(data)
-
 
 
 def visualization():

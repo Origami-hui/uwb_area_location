@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
+import src
 from utils import *
 from config import *
-import src
+from src import *
 
 
 def decode(data):
-    global warnFlag
-
     # 解析数据
     if len(data) != 16:
         print('error len data: ', len(data))
@@ -30,6 +29,7 @@ def decode(data):
         dis_list.append(dis3)
 
     tx_location = cul_tx_location(tag_id, dis_list)
+    src.detection(tag_id, tx_location[0], tx_location[1])
 
     if tx_location != 0:
 
@@ -41,10 +41,11 @@ def decode(data):
 
 
 def decode_with_extension_data(data):
-    if len(data) < 29:
+    if len(data) < 32:
         return
 
     tag_id = data[3]
+    # seq_num = data[4] + data[5] * 256
 
     dis0 = (data[6] + data[7] * 256) / 100
     dis1 = (data[8] + data[9] * 256) / 100
@@ -62,45 +63,23 @@ def decode_with_extension_data(data):
     rx_rssi1 = -(data[20] + data[21] * 256) / 100
     rx_rssi2 = -(data[22] + data[23] * 256) / 100
 
-    print(fp_rssi0, fp_rssi1, fp_rssi2)
-    print(rx_rssi0, rx_rssi1, rx_rssi2)
+    nlos0 = pending_nlos(rx_rssi0, fp_rssi0, dis0)
+    nlos1 = pending_nlos(rx_rssi1, fp_rssi1, dis1)
+    nlos2 = pending_nlos(rx_rssi2, fp_rssi2, dis2)
+    print(nlos0, nlos1, nlos2)
 
+    # 正常执行定位流程即可
+    tx_location = cul_tx_location(tag_id, dis_list)
 
-def cul_tx_location(tag_id, dis_list):
-    # 二维场景下计算标签坐标(x, y)
-    # 默认以rx1为原点，rx1到rx2的向量为x轴建立坐标系
+    # if nlos0 + nlos1 + nlos2 > 0:
+    if nlos0 == 0:
+        print("in nlos case!")
+        # TODO: 如果需要融合定位，获取imu数据，否则利用冗余坐标信息即可
+        # 引入imu测量加速度
+        tx_location = src.merge_location(tag_id, tx_location, handle_imu_data(data), nlos0 + nlos1 + nlos2)
 
-    global obsX, obsY, re_x, re_y, ex_x, ex_y
+    src.detection(tag_id, tx_location[0], tx_location[1])
 
-    if len(dis_list) == 3:
-
-        [x0, y0] = two_point_location(dis_list[0], dis_list[1], dis_list[2], rx1, rx2, rx3)
-        [x1, y1] = two_point_location(dis_list[1], dis_list[2], dis_list[0], rx2, rx3, rx1)
-        [x2, y2] = two_point_location(dis_list[2], dis_list[0], dis_list[1], rx3, rx1, rx2)
-
-        # 取三角形中心作为定位坐标
-        x = (x0 + x1 + x2) / 3
-        y = (y0 + y1 + y2) / 3
-
-        x = round(x, 6)
-        y = round(y, 6)
-
-        src.detection(tag_id, x, y)
-        return [x, y]
-
-    elif len(dis_list) == 4:
-
-        [x0, y0] = two_point_location(dis_list[0], dis_list[1], dis_list[2], rx1, rx2, rx3)
-        [x1, y1] = two_point_location(dis_list[1], dis_list[2], dis_list[3], rx2, rx3, rx4)
-        [x2, y2] = two_point_location(dis_list[2], dis_list[3], dis_list[0], rx3, rx4, rx1)
-        [x3, y3] = two_point_location(dis_list[3], dis_list[0], dis_list[1], rx4, rx1, rx2)
-
-        # 取中心作为定位坐标
-        x = (x0 + x1 + x2 + x3) / 4
-        y = (y0 + y1 + y2 + y3) / 4
-
-        x = round(x, 6)
-        y = round(y, 6)
-
-        src.detection(tag_id, x, y)
-        return [x, y]
+    if tx_location != 0:
+        if SAVE_DATA_FLAG:
+            src.save_data(tag_id, tx_location)
