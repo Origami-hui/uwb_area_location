@@ -9,7 +9,7 @@ import xlrd, xlwt
 from numpy.linalg import inv, det
 
 from main import *
-from TDOAInterface import *
+from tdoa_interface import *
 from config import *
 
 preAngle = []  # 矩形角度缓存池
