@@ -20,6 +20,9 @@
 2. 画图分析：analysis.py
 3. 训练与测试NLoS识别算法：random_forest_model.py
 
+#### 备注：
+1. 各种配置项在 config.py 文件里，如基站坐标、标签数量等
+
 ## 2023.4.2
 现阶段该套代码主要的功能为uwb多标签定位以及区域碰撞检测。
 
@@ -39,4 +42,5 @@
 
 <div style="text-align: center;">
   <img src="fig/5ae6459149949bea212315cbceee540438254734.jpg" alt="封面图" width="300">
+  <p>来点私货</p>
 </div>
