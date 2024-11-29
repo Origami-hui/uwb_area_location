@@ -110,22 +110,24 @@ def detection(tag_id, x, y):
         return
 
     if FILTER_FLAG and len(obsX[tag_id - TX_STR_NUM]) >= 1 and tag_id <= TX_STR_NUM + TX_NUM - HUM_NUM:
-        # 对于车辆标签，执行扩展卡尔曼滤波，返回预测
-        tx, ty = ekf(tag_id, x, y, obsV[tag_id - TX_STR_NUM][-1], obsTheta[tag_id - TX_STR_NUM][-1],
-                     obsOmiga[tag_id - TX_STR_NUM][-1])
-        # tx, ty = kalman_filter(obsX[tag_id - TX_STR_NUM], obsY[tag_id - TX_STR_NUM])
-        dis = math.sqrt((tx - x) ** 2 + (ty - y) ** 2)
+        if len(obsTheta[tag_id - TX_STR_NUM]) > 0 and len(obsOmiga[tag_id - TX_STR_NUM]) > 0 \
+                and len(obsV[tag_id - TX_STR_NUM]) > 0:
+            # 对于车辆标签，执行扩展卡尔曼滤波，返回预测
+            tx, ty = ekf(tag_id, x, y, obsV[tag_id - TX_STR_NUM][-1], obsTheta[tag_id - TX_STR_NUM][-1],
+                         obsOmiga[tag_id - TX_STR_NUM][-1])
+            # tx, ty = kalman_filter(obsX[tag_id - TX_STR_NUM], obsY[tag_id - TX_STR_NUM])
+            dis = math.sqrt((tx - x) ** 2 + (ty - y) ** 2)
 
-        avg_dis_diff.append(dis)
-        print("平均预测偏差：", sum(avg_dis_diff) / len(avg_dis_diff))
+            avg_dis_diff.append(dis)
+            print("平均预测偏差：", sum(avg_dis_diff) / len(avg_dis_diff))
 
-        if dis > 6:
-            print("重新赋值")
-            x = (x + tx) / 2
-            y = (y + ty) / 2
+            if dis > 6:
+                print("重新赋值")
+                x = (x + tx) / 2
+                y = (y + ty) / 2
 
-        resetState(tag_id, x, y, obsV[tag_id - TX_STR_NUM][-1], obsTheta[tag_id - TX_STR_NUM][-1],
-                   obsOmiga[tag_id - TX_STR_NUM][-1])
+            resetState(tag_id, x, y, obsV[tag_id - TX_STR_NUM][-1], obsTheta[tag_id - TX_STR_NUM][-1],
+                       obsOmiga[tag_id - TX_STR_NUM][-1])
 
     obsX[tag_id - TX_STR_NUM].append(x)
     obsY[tag_id - TX_STR_NUM].append(y)
@@ -133,8 +135,10 @@ def detection(tag_id, x, y):
     if len(obsY[tag_id - TX_STR_NUM]) > 64:
         obsX[tag_id - TX_STR_NUM].pop(0)
         obsY[tag_id - TX_STR_NUM].pop(0)
-        obsV[tag_id - TX_STR_NUM].pop(0)
-        if tag_id <= TX_STR_NUM + TX_NUM - HUM_NUM:
+        if len(obsV[tag_id - TX_STR_NUM]) > 0:
+            obsV[tag_id - TX_STR_NUM].pop(0)
+        if tag_id <= TX_STR_NUM + TX_NUM - HUM_NUM and len(obsTheta[tag_id - TX_STR_NUM]) > 0 \
+                and len(obsOmiga[tag_id - TX_STR_NUM]) > 0:
             obsTheta[tag_id - TX_STR_NUM].pop(0)
             obsOmiga[tag_id - TX_STR_NUM].pop(0)
 
@@ -260,7 +264,7 @@ def plot_update(i):
 
     # 当前更新绘图方法，后续可进行轨迹优化
 
-    # ax.clear()
+    ax.clear()
 
     ax.set_xlim(min_x - 1, max_x + 1)
     ax.set_ylim(min_y - 1, max_y + 1)
@@ -334,11 +338,32 @@ def plot_update(i):
     return tup
 
 
-def save_data(tag_id, tx_location):
+def save_data(tag_id, tx_location, dis_list, fp_rssi, rx_rssi, acc_data):
     global ri
     ri[tag_id - TX_STR_NUM] += 1
     ws.write(ri[tag_id - TX_STR_NUM], 0 + 3 * (tag_id - TX_STR_NUM), tx_location[0])
     ws.write(ri[tag_id - TX_STR_NUM], 1 + 3 * (tag_id - TX_STR_NUM), tx_location[1])
+
+    if dis_list is not None:
+        ws.write(ri[tag_id - TX_STR_NUM], 3 + 3 * (tag_id - TX_STR_NUM), dis_list[0])
+        ws.write(ri[tag_id - TX_STR_NUM], 4 + 3 * (tag_id - TX_STR_NUM), dis_list[1])
+        ws.write(ri[tag_id - TX_STR_NUM], 5 + 3 * (tag_id - TX_STR_NUM), dis_list[2])
+
+    if fp_rssi is not None:
+        ws.write(ri[tag_id - TX_STR_NUM], 7 + 3 * (tag_id - TX_STR_NUM), fp_rssi[0])
+        ws.write(ri[tag_id - TX_STR_NUM], 8 + 3 * (tag_id - TX_STR_NUM), fp_rssi[1])
+        ws.write(ri[tag_id - TX_STR_NUM], 9 + 3 * (tag_id - TX_STR_NUM), fp_rssi[2])
+
+    if rx_rssi is not None:
+        ws.write(ri[tag_id - TX_STR_NUM], 11 + 3 * (tag_id - TX_STR_NUM), rx_rssi[0])
+        ws.write(ri[tag_id - TX_STR_NUM], 12 + 3 * (tag_id - TX_STR_NUM), rx_rssi[1])
+        ws.write(ri[tag_id - TX_STR_NUM], 13 + 3 * (tag_id - TX_STR_NUM), rx_rssi[2])
+
+    if acc_data is not None:
+        ws.write(ri[tag_id - TX_STR_NUM], 15 + 3 * (tag_id - TX_STR_NUM), acc_data[0])
+        ws.write(ri[tag_id - TX_STR_NUM], 16 + 3 * (tag_id - TX_STR_NUM), acc_data[1])
+        ws.write(ri[tag_id - TX_STR_NUM], 17 + 3 * (tag_id - TX_STR_NUM), acc_data[2])
+
     wb.save(W_DATA_FILE_NAME)
 
 
@@ -394,7 +419,7 @@ def dispose_client_request(client, tcp_client_address=0):
 
 
 def handle_uart_data():
-    ser = serial.Serial('COM6', 115200, parity=serial.PARITY_NONE, stopbits=1, bytesize=8)
+    ser = serial.Serial('COM10', 115200, parity=serial.PARITY_NONE, stopbits=1, bytesize=8)
 
     while True:
         data = ser.read(32)

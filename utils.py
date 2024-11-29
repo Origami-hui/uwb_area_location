@@ -1602,7 +1602,8 @@ def pending_nlos(rx_rssi, fp_rssi, dis):
     if math.fabs(rx_rssi + 655.35) < 0.01 or math.fabs(fp_rssi + 655.35) < 0.01:
         return 1
 
-    y_pred = clf_loaded.predict(pd.DataFrame([single_sample]))
+    feature_order = ['rx_rssi', 'fp_rssi', 'range']
+    y_pred = clf_loaded.predict(pd.DataFrame([single_sample], columns=feature_order))
     return y_pred[0]
 
 
@@ -1624,8 +1625,8 @@ def handle_imu_data(data):
     else:
         temp_list[2] = (data[29] << 8 | data[28])  # 正数直接返回
 
-    imu_ax = temp_list[0] / 32768 * 16 * 9.8
-    imu_ay = temp_list[1] / 32768 * 16 * 9.8
-    imu_az = temp_list[2] / 32768 * 16 * 9.8
-    print("imu data: ", imu_ax, imu_ay, imu_az)
+    temp_list[0] = temp_list[0] / 32768 * 16 * 9.8
+    temp_list[1] = temp_list[1] / 32768 * 16 * 9.8
+    temp_list[2] = temp_list[2] / 32768 * 16 * 9.8
+    # print("imu data: ", imu_ax, imu_ay, imu_az)
     return temp_list

@@ -5,13 +5,15 @@ import glob
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 import joblib
 from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
+from sklearn.metrics import roc_curve, auc
 from config import *
 import numpy as np
 
 
 def train_model():
     # 1. 创建分类器
-    clf = RandomForestClassifier(n_estimators=10, n_jobs=4)
+    clf = RandomForestClassifier(n_estimators=100, n_jobs=1)
     # 2. 训练模型
     clf.fit(X_train, y_train)
 
@@ -21,13 +23,13 @@ def train_model():
     joblib.dump(clf, NLOS_MODEL_NAME)
 
 
-def test_model():
+def test_model(_X, _y):
     # 加载模型
     clf_loaded = joblib.load(NLOS_MODEL_NAME)
 
     # 进行预测
     print("X_test", X_test)
-    execute_test(clf_loaded, X_test, y_test)
+    execute_test(clf_loaded, _X, _y)
 
 
 def execute_test(clf, X, y):
@@ -45,6 +47,9 @@ def execute_test(clf, X, y):
     print("混淆矩阵:")
     print(confusion_matrix(y, y_pred))
 
+    # fpr, tpr, thresholds = roc_curve(y, y_pred)
+    # print(fpr, tpr)
+
 
 def random_test():
     num_classes = len(np.unique(y_test))  # 获取类别数量
@@ -61,9 +66,9 @@ def random_test():
 
 if __name__ == '__main__':
 
-    #file_paths = glob.glob(os.path.join('nlos dataset', 'nlos case1108-3.csv'))
     file_paths = glob.glob(os.path.join('nlos dataset', '*.csv'))
-
+    # file_paths = glob.glob(os.path.join('nlos dataset', '*.csv'))
+    print(file_paths)
     # 读取并合并所有 CSV 文件
     df_list = [pd.read_csv(file) for file in file_paths]  # 逐个读取
     df = pd.concat(df_list, ignore_index=True)  # 合并所有 DataFrame
@@ -85,10 +90,14 @@ if __name__ == '__main__':
     # print(f"0 的个数: {count_0}")
     # print(f"1 的个数: {count_1}")
 
-    # 划分训练集、验证集和测试集
-    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.4)
-    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5)
+    test_flag = False
 
-    #train_model()
-    test_model()
-    # random_test()
+    if test_flag:
+
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+        test_model(X_test, y_test)
+        # random_test()
+
+    else:
+        X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.3, random_state=42)
+        train_model()

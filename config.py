@@ -16,7 +16,7 @@ CAR_LENGTH = 3.0
 RX_NUM = 3
 
 # 标签数量（车辆标签与人员标签之和）
-TX_NUM = 5
+TX_NUM = 1
 # 车辆标签起始编号
 TX_STR_NUM = 5
 # 是否有人员标签
@@ -27,11 +27,11 @@ HUM_NUM = 1
 # 是否采集数据（True为采集数据，False为使用数据集测试）
 SAVE_DATA_FLAG = True
 # 数据表名称（写与读）
-W_DATA_FILE_NAME = "data/data11_14_test1.xls"
+W_DATA_FILE_NAME = "data/data_nlos_imu_1.xls"
 R_DATA_FILE_NAME = "data/data_demo1.xls"
 
 # NLoS采集数据
-NLOS_DATA_NAME = "nlos dataset/nlos case1108-3.csv"
+NLOS_DATA_NAME = "nlos dataset/nlos case1126-2.csv"
 # 是否处于NLoS
 IN_NLOS_FLAG = True
 
@@ -51,7 +51,7 @@ FILTER_FLAG = True
 # 是否开启转向平滑矫正
 TOWARDS_COR_FLAG = True
 # 是否开启车辆标签点渲染
-CAR_TX_RENDER_FLAG = False
+CAR_TX_RENDER_FLAG = True
 
 # 当前启用的定位算法（True为TDOA算法，False为TWR算法）
 TDOA_FLAG = False
@@ -74,18 +74,23 @@ TDOA_FLAG = False
 # rx1 = [4.15, 7.2, 0]
 
 # 实验室
-# rx1 = [0, 0, 0]
-# rx3 = [2, 0, 0]
-# rx2 = [1, 1, 0]
+rx1 = [0, 0, 0]
+rx3 = [2, 0, 0]
+rx2 = [1, 1, 0]
 
 # 东门附近空地
-rx3 = [0, 0, 0]
-rx2 = [75, 0, 0]
-rx1 = [37.5, 38, 0]
+# rx3 = [0, 0, 0]
+# rx2 = [75, 0, 0]
+# rx1 = [37.5, 38, 0]
 
 # 房间
 # rx1 = [1.0, 2.75, 0]
 # rx2 = [0, 0, 0]
 # rx3 = [2, 0, 0]
+
+# 4楼走廊
+# rx1 = [0, 0, 0]
+# rx2 = [0, 1, 0]
+# rx3 = [60, 0, 0]
 
 rx4 = [0, 0, 0]

@@ -71,15 +71,17 @@ def decode_with_extension_data(data):
     # 正常执行定位流程即可
     tx_location = cul_tx_location(tag_id, dis_list)
 
-    # if nlos0 + nlos1 + nlos2 > 0:
-    if nlos0 == 0:
+    acc_data = handle_imu_data(data)
+
+    if nlos0 + nlos1 + nlos2 > 0:
+    # if nlos0 == 0:
         print("in nlos case!")
         # TODO: 如果需要融合定位，获取imu数据，否则利用冗余坐标信息即可
         # 引入imu测量加速度
-        tx_location = src.merge_location(tag_id, tx_location, handle_imu_data(data), nlos0 + nlos1 + nlos2)
+        tx_location = src.merge_location(tag_id, tx_location, acc_data, nlos0 + nlos1 + nlos2)
 
     src.detection(tag_id, tx_location[0], tx_location[1])
 
-    if tx_location != 0:
-        if SAVE_DATA_FLAG:
-            src.save_data(tag_id, tx_location)
+    if tx_location != 0 and SAVE_DATA_FLAG:
+        src.save_data(tag_id, tx_location, dis_list, [fp_rssi0, fp_rssi1, fp_rssi2],
+                      [rx_rssi0, rx_rssi1, rx_rssi2], acc_data)
