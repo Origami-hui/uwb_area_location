@@ -37,7 +37,7 @@ class RSSIAndDisData:
     def save_data(self):
         new_data = {'tx': self.tagAddr, 'rx_rssi': self.rx_rssi, 'fp_rssi': self.fp_rssi,
                     'range': self.dis, 'nlos': 1 if IN_NLOS_FLAG else 0}
-        self.df = self.df.append(new_data, ignore_index=True)
+        self.df = self.df._append(new_data, ignore_index=True)
 
         # 保存 DataFrame 到 CSV 文件
         self.df.to_csv(NLOS_DATA_NAME, index=False)
@@ -69,7 +69,7 @@ def find_serial_port(vendor_id=None, product_id=None):
 
 
 # 打开串口
-ser = serial.Serial('COM10', 115200, parity=serial.PARITY_NONE, stopbits=1, bytesize=8)
+ser = serial.Serial('COM4', 115200, parity=serial.PARITY_NONE, stopbits=1, bytesize=8)
 
 #-84.01	-101.89	7.810591
 

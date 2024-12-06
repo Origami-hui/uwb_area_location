@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import math
+
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -49,6 +51,8 @@ org_x, org_y = [], []  # 修正前矩形，用于展示
 
 warnFlag = True
 
+nlosFlag = False
+
 # for i in range(TX_NUM):
 #     ws.write(ri[i], 0 + 3*i, "rx"+str(i+1)+"_x") # 写入数据，3个参数分别为行号，列号，和内容
 #     ws.write(ri[i], 1 + 3*i, "rx"+str(i+1)+"_y")
@@ -80,7 +84,7 @@ def detection(tag_id, x, y):
     if len(obsX[tag_id - TX_STR_NUM]) > 1:
         obsV[tag_id - TX_STR_NUM].append(math.sqrt((obsX[tag_id - TX_STR_NUM][-1] - obsX[tag_id - TX_STR_NUM][-2]) ** 2
                                                    + (obsY[tag_id - TX_STR_NUM][-1] - obsY[tag_id - TX_STR_NUM][
-            -2]) ** 2))
+            -2]) ** 2) / LOCATION_FREQ)
     else:
         obsV[tag_id - TX_STR_NUM].append(0.0)
     if tag_id < TX_STR_NUM + TX_NUM - HUM_NUM:
@@ -225,11 +229,18 @@ def detection(tag_id, x, y):
 
 def merge_location(tag_id, tx_location, imu_acc, nlos_num):
     if len(obsX[tag_id - TX_STR_NUM]) > 1:
-        print(obsX[tag_id - TX_STR_NUM][-1], obsY[tag_id - TX_STR_NUM][-1])
-        s_temp = [(obsX[tag_id - TX_STR_NUM][-1] - obsX[tag_id - TX_STR_NUM][-2]) * LOCATION_FREQ,
-                  (obsY[tag_id - TX_STR_NUM][-1] - obsY[tag_id - TX_STR_NUM][-2]) * LOCATION_FREQ]
-        v_temp = [obsX[tag_id - TX_STR_NUM][-1] + s_temp[0] / LOCATION_FREQ + 0.5 * imu_acc[0] / LOCATION_FREQ ** 2,
-                  obsY[tag_id - TX_STR_NUM][-1] + s_temp[1] / LOCATION_FREQ + 0.5 * imu_acc[1] / LOCATION_FREQ ** 2]
+        # print(obsX[tag_id - TX_STR_NUM][-1], obsY[tag_id - TX_STR_NUM][-1])
+        # acc = math.sqrt(imu_acc[0] ** 2 + imu_acc[1] ** 2)
+        speed_temp = [(obsX[tag_id - TX_STR_NUM][-1] - obsX[tag_id - TX_STR_NUM][-2]) * LOCATION_FREQ,
+                      (obsY[tag_id - TX_STR_NUM][-1] - obsY[tag_id - TX_STR_NUM][-2]) * LOCATION_FREQ]
+        dir_temp = [speed_temp[0] / math.sqrt(speed_temp[0] ** 2 + speed_temp[1] ** 2),
+                    speed_temp[1] / math.sqrt(speed_temp[0] ** 2 + speed_temp[1] ** 2)]
+        # (x, y) = (c⋅b+d⋅a, −c⋅a+d⋅b)
+        acc_spec = [imu_acc[0] * dir_temp[1] + imu_acc[1] * dir_temp[0],
+                    -imu_acc[0] * dir_temp[0] + imu_acc[1] * dir_temp[1]]
+        v_temp = [
+            obsX[tag_id - TX_STR_NUM][-1] + speed_temp[0] / LOCATION_FREQ + 0.5 * acc_spec[0] / (LOCATION_FREQ ** 2),
+            obsY[tag_id - TX_STR_NUM][-1] + speed_temp[1] / LOCATION_FREQ + 0.5 * acc_spec[1] / (LOCATION_FREQ ** 2)]
         # 根据处于nlos的信号数量决定最终坐标点到虚拟点和定位点的权重
         weight = cul_weight(nlos_num)
         return [v_temp[0] + weight * (tx_location[0] - v_temp[0]), v_temp[1] + weight * (tx_location[1] - v_temp[1])]
@@ -244,18 +255,25 @@ def merge_location(tag_id, tx_location, imu_acc, nlos_num):
 def cul_weight(nlos_num):
     # 处于nlos的信号越多，最终坐标越往虚拟坐标点靠近（全nlos直接取虚拟坐标点）
     if nlos_num == 3:
-        return 0
-    elif nlos_num == 2:
-        return 0.25
-    else:
         return 0.5
+    elif nlos_num == 2:
+        return 0.75
+    else:
+        return 1.0
+
+
+gtx = [1.45, 1.45, 10.8, 10.8, 1.45]
+gty = [9.45, 0.6, 0.6, 9.45, 9.45]
 
 
 def plot_init():
     ax.set_xlim(min_x - 1, max_x + 1)
     ax.set_ylim(min_y - 1, max_y + 1)
     sc = plt.scatter([rx1[0], rx2[0], rx3[0]], [rx1[1], rx2[1], rx3[1]], c="k")
-    return sc,
+
+    # 绘制ground true矩形
+    rect, = plt.plot(gtx, gty, "k")
+    return sc, rect,
 
 
 def plot_update(i):
@@ -264,7 +282,7 @@ def plot_update(i):
 
     # 当前更新绘图方法，后续可进行轨迹优化
 
-    ax.clear()
+    # ax.clear()
 
     ax.set_xlim(min_x - 1, max_x + 1)
     ax.set_ylim(min_y - 1, max_y + 1)
@@ -278,7 +296,10 @@ def plot_update(i):
     if CAR_TX_RENDER_FLAG:
         sc = [_ for _ in range(TX_NUM)]
         for k in range(TX_NUM):
-            sc[k] = plt.scatter(X_copy[k][-1:], Y_copy[k][-1:], c=c_list[k])
+            if nlosFlag:
+                sc[k] = plt.scatter(X_copy[k][-1:], Y_copy[k][-1:], c='b')
+            else:
+                sc[k] = plt.scatter(X_copy[k][-1:], Y_copy[k][-1:], c=c_list[k])
         tup = tuple(each for each in sc)
     elif CAR_TX_RENDER_FLAG is False and HAVE_HUM:
         sc = [[]]
@@ -419,7 +440,7 @@ def dispose_client_request(client, tcp_client_address=0):
 
 
 def handle_uart_data():
-    ser = serial.Serial('COM10', 115200, parity=serial.PARITY_NONE, stopbits=1, bytesize=8)
+    ser = serial.Serial(RX_COM, 115200, parity=serial.PARITY_NONE, stopbits=1, bytesize=8)
 
     while True:
         data = ser.read(32)
@@ -468,8 +489,74 @@ def openData():
                         warnNum += 1
                     print("当前概率：", calculateRate(warnNum, testNum))
 
+        time.sleep(0.2)  # 控制读取数据的速度
+
+
+def openDataV2():
+    global nlosFlag
+
+    df = pd.read_excel(R_DATA_FILE_NAME)
+    data = df.values
+
+    change_index = [29, 46, 59, 95, 111, 122, 141, 155, 165, 182, 197]
+    now_index = 0
+    RMSE = 0
+    STD = 0
+    sum_temp = [0 for _ in range(len(change_index))]
+    avg_temp = [42.050000000000004, 10.199999999999998, 140.4, 340.19999999999976, 23.199999999999992, 6.599999999999999, 205.20000000000007, 132.3, 14.499999999999996, 10.199999999999998, 151.20000000000002]
+    cdf = []
+
+    vaildIndexStart = 2  # 计算概率的有效行数起始索引
+    for k in range(1, change_index[-1]):
+        if not math.isnan(data[k][0]):
+
+            # 正常执行定位流程即可
+            tx_location = cul_tx_location(5, [data[k][3], data[k][4], data[k][5]])
+
+            acc_data = [data[k][15], data[k][16], data[k][17]]
+
+            nlos0 = pending_nlos(data[k][11], data[k][7], data[k][3])
+            nlos1 = pending_nlos(data[k][12], data[k][8], data[k][4])
+            nlos2 = pending_nlos(data[k][13], data[k][9], data[k][5])
+            print(nlos0, nlos1, nlos2)
+
+            if nlos0 + nlos1 + nlos2 > 1 and NLOS_FIX_FLAG:
+                # 引入imu测量加速度
+                print("补偿前：", tx_location)
+                tx_location = merge_location(5, tx_location, acc_data, nlos0 + nlos1 + nlos2)
+                print("补偿后：", tx_location)
+                nlosFlag = True
+            else:
+                nlosFlag = False
+
+            detection(5, tx_location[0], tx_location[1])
+
+            # 计算RMSE 与 std
+            if k > change_index[now_index]:
+                now_index += 1
+
+            n_temp = change_index[now_index]
+            if now_index > 1:
+                n_temp = change_index[now_index] - change_index[now_index - 1]
+
+            if now_index % 2 == 0:
+                RMSE += (tx_location[0] - gtx[now_index % 4]) ** 2
+                STD += (avg_temp[now_index] / n_temp - gtx[now_index % 4]) ** 2
+                cdf.append(tx_location[0] - gtx[now_index % 4])
+                sum_temp[now_index] += gtx[now_index % 4]
+            else:
+                RMSE += (tx_location[1] - gty[now_index % 4]) ** 2
+                STD += (avg_temp[now_index] / n_temp - gty[now_index % 4]) ** 2
+                cdf.append(tx_location[1] - gty[now_index % 4])
+                sum_temp[now_index] += gty[now_index % 4]
+
+            print("RMSE: ", math.sqrt(RMSE / k))
+            print("STD: ", math.sqrt(STD / k))
+            # print("sum_temp: ", sum_temp)
+
         time.sleep(0.05)  # 控制读取数据的速度
 
+    print("cdf: ", cdf)
 
 def calculateRate(warnNum, testNum):
     # 计算虚警概率与预警成功率，默认以数据集测试。

@@ -42,7 +42,7 @@ if __name__ == '__main__':
 
     else:
 
-        thd = threading.Thread(target=src.openData, args=())
+        thd = threading.Thread(target=src.openDataV2, args=())
         thd.setDaemon(True)
         thd.start()
 
