@@ -5,6 +5,7 @@ import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import pandas as pd
 import xlwt as xlwt
+from PIL import Image
 
 from EKF import *
 from twr_interface import *
@@ -235,12 +236,12 @@ def merge_location(tag_id, tx_location, imu_acc, nlos_num):
                       (obsY[tag_id - TX_STR_NUM][-1] - obsY[tag_id - TX_STR_NUM][-2]) * LOCATION_FREQ]
         dir_temp = [speed_temp[0] / math.sqrt(speed_temp[0] ** 2 + speed_temp[1] ** 2),
                     speed_temp[1] / math.sqrt(speed_temp[0] ** 2 + speed_temp[1] ** 2)]
-        # (x, y) = (c⋅b+d⋅a, −c⋅a+d⋅b)
+        # (x, y) = (c⋅a+d⋅b, −c⋅b+d⋅a)
         acc_spec = [imu_acc[0] * dir_temp[1] + imu_acc[1] * dir_temp[0],
                     -imu_acc[0] * dir_temp[0] + imu_acc[1] * dir_temp[1]]
         v_temp = [
-            obsX[tag_id - TX_STR_NUM][-1] + speed_temp[0] / LOCATION_FREQ + 0.5 * acc_spec[0] / (LOCATION_FREQ ** 2),
-            obsY[tag_id - TX_STR_NUM][-1] + speed_temp[1] / LOCATION_FREQ + 0.5 * acc_spec[1] / (LOCATION_FREQ ** 2)]
+            obsX[tag_id - TX_STR_NUM][-1] + 0.5 * acc_spec[0] / (LOCATION_FREQ ** 2),
+            obsY[tag_id - TX_STR_NUM][-1] + 0.5 * acc_spec[1] / (LOCATION_FREQ ** 2)]
         # 根据处于nlos的信号数量决定最终坐标点到虚拟点和定位点的权重
         weight = cul_weight(nlos_num)
         return [v_temp[0] + weight * (tx_location[0] - v_temp[0]), v_temp[1] + weight * (tx_location[1] - v_temp[1])]
@@ -255,11 +256,11 @@ def merge_location(tag_id, tx_location, imu_acc, nlos_num):
 def cul_weight(nlos_num):
     # 处于nlos的信号越多，最终坐标越往虚拟坐标点靠近（全nlos直接取虚拟坐标点）
     if nlos_num == 3:
-        return 0.5
+        return 0
     elif nlos_num == 2:
-        return 0.75
+        return 0.25
     else:
-        return 1.0
+        return 0.5
 
 
 gtx = [1.45, 1.45, 10.8, 10.8, 1.45]
@@ -297,9 +298,9 @@ def plot_update(i):
         sc = [_ for _ in range(TX_NUM)]
         for k in range(TX_NUM):
             if nlosFlag:
-                sc[k] = plt.scatter(X_copy[k][-1:], Y_copy[k][-1:], c='b')
+                sc[k] = plt.scatter(X_copy[k][-1:], Y_copy[k][-1:], marker='+', c='g')
             else:
-                sc[k] = plt.scatter(X_copy[k][-1:], Y_copy[k][-1:], c=c_list[k])
+                sc[k] = plt.scatter(X_copy[k][-1:], Y_copy[k][-1:], marker='+', c=c_list[k])
         tup = tuple(each for each in sc)
     elif CAR_TX_RENDER_FLAG is False and HAVE_HUM:
         sc = [[]]
@@ -457,7 +458,17 @@ def visualization():
                                   interval=5,  # 图像更新间隔
                                   blit=False)
 
+    # img = Image.open('C:/Users/17005/Desktop/map.png')
+    # img = np.array(img)
+    # ax.imshow(img, extent=[-0.5, 16, -0.5, 19.3])  # extent 设置坐标范围
+
+    plt.scatter(1000, 1000, marker='+', c='g', label='Coordinates after ')
+    plt.scatter(1000, 1000, marker='+', c='r', label='Coordinates before ')
+    plt.scatter(1000, 1000, color='gray', label='Coordinates before ')
+    plt.plot(1000, 1000, c='k', label='Ground True')
+
     plt.title("target location")
+    plt.legend(loc='upper left')
     plt.show()
 
 
@@ -498,7 +509,7 @@ def openDataV2():
     df = pd.read_excel(R_DATA_FILE_NAME)
     data = df.values
 
-    change_index = [29, 46, 59, 95, 111, 122, 141, 155, 165, 182, 197]
+    change_index = [29, 46, 59, 95, 111, 122, 141, 155, 165, 182]
     now_index = 0
     RMSE = 0
     STD = 0
@@ -506,7 +517,6 @@ def openDataV2():
     avg_temp = [42.050000000000004, 10.199999999999998, 140.4, 340.19999999999976, 23.199999999999992, 6.599999999999999, 205.20000000000007, 132.3, 14.499999999999996, 10.199999999999998, 151.20000000000002]
     cdf = []
 
-    vaildIndexStart = 2  # 计算概率的有效行数起始索引
     for k in range(1, change_index[-1]):
         if not math.isnan(data[k][0]):
 
@@ -542,12 +552,12 @@ def openDataV2():
             if now_index % 2 == 0:
                 RMSE += (tx_location[0] - gtx[now_index % 4]) ** 2
                 STD += (avg_temp[now_index] / n_temp - gtx[now_index % 4]) ** 2
-                cdf.append(tx_location[0] - gtx[now_index % 4])
+                cdf.append(math.fabs(tx_location[0] - gtx[now_index % 4]))
                 sum_temp[now_index] += gtx[now_index % 4]
             else:
                 RMSE += (tx_location[1] - gty[now_index % 4]) ** 2
                 STD += (avg_temp[now_index] / n_temp - gty[now_index % 4]) ** 2
-                cdf.append(tx_location[1] - gty[now_index % 4])
+                cdf.append(math.fabs(tx_location[1] - gty[now_index % 4]))
                 sum_temp[now_index] += gty[now_index % 4]
 
             print("RMSE: ", math.sqrt(RMSE / k))
