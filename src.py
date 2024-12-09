@@ -552,12 +552,14 @@ def openDataV2():
             if now_index % 2 == 0:
                 RMSE += (tx_location[0] - gtx[now_index % 4]) ** 2
                 STD += (avg_temp[now_index] / n_temp - gtx[now_index % 4]) ** 2
-                cdf.append(math.fabs(tx_location[0] - gtx[now_index % 4]))
+                if now_index > 1:
+                    cdf.append(math.fabs(tx_location[0] - gtx[now_index % 4]))
                 sum_temp[now_index] += gtx[now_index % 4]
             else:
                 RMSE += (tx_location[1] - gty[now_index % 4]) ** 2
                 STD += (avg_temp[now_index] / n_temp - gty[now_index % 4]) ** 2
-                cdf.append(math.fabs(tx_location[1] - gty[now_index % 4]))
+                if now_index > 1:
+                    cdf.append(math.fabs(tx_location[1] - gty[now_index % 4]))
                 sum_temp[now_index] += gty[now_index % 4]
 
             print("RMSE: ", math.sqrt(RMSE / k))

@@ -45,7 +45,7 @@ NLOS_MODEL_NAME = "random_forest_model_test.starry"
 BUILD_RECT_FLAG = True
 
 # 是否对NLoS场景进行误差补偿
-NLOS_FIX_FLAG = True
+NLOS_FIX_FLAG = False
 
 # 安全阈值距离
 THRES_DIS = 2.0
