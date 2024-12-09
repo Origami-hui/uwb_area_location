@@ -283,7 +283,7 @@ def plot_update(i):
 
     # 当前更新绘图方法，后续可进行轨迹优化
 
-    # ax.clear()
+    ax.clear()
 
     ax.set_xlim(min_x - 1, max_x + 1)
     ax.set_ylim(min_y - 1, max_y + 1)
