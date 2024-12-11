@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 import math
 
 import matplotlib.animation as animation
@@ -509,15 +510,15 @@ def openDataV2():
     df = pd.read_excel(R_DATA_FILE_NAME)
     data = df.values
 
-    change_index = [29, 46, 59, 95, 111, 122, 141, 155, 165, 182]
-    now_index = 0
-    RMSE = 0
-    STD = 0
-    sum_temp = [0 for _ in range(len(change_index))]
-    avg_temp = [42.050000000000004, 10.199999999999998, 140.4, 340.19999999999976, 23.199999999999992, 6.599999999999999, 205.20000000000007, 132.3, 14.499999999999996, 10.199999999999998, 151.20000000000002]
-    cdf = []
+    # change_index = [29, 46, 59, 95, 111, 122, 141, 155, 165, 182]
+    # now_index = 0
+    # RMSE = 0
+    # STD = 0
+    # sum_temp = [0 for _ in range(len(change_index))]
+    # avg_temp = [42.050000000000004, 10.199999999999998, 140.4, 340.19999999999976, 23.199999999999992, 6.599999999999999, 205.20000000000007, 132.3, 14.499999999999996, 10.199999999999998, 151.20000000000002]
+    # cdf = []
 
-    for k in range(1, change_index[-1]):
+    for k in range(1, len(data)):
         if not math.isnan(data[k][0]):
 
             # 正常执行定位流程即可
@@ -528,47 +529,57 @@ def openDataV2():
             nlos0 = pending_nlos(data[k][11], data[k][7], data[k][3])
             nlos1 = pending_nlos(data[k][12], data[k][8], data[k][4])
             nlos2 = pending_nlos(data[k][13], data[k][9], data[k][5])
-            print(nlos0, nlos1, nlos2)
 
             if nlos0 + nlos1 + nlos2 > 1 and NLOS_FIX_FLAG:
                 # 引入imu测量加速度
-                print("补偿前：", tx_location)
+                # print("补偿前：", tx_location)
                 tx_location = merge_location(5, tx_location, acc_data, nlos0 + nlos1 + nlos2)
-                print("补偿后：", tx_location)
+                # print("补偿后：", tx_location)
                 nlosFlag = True
             else:
                 nlosFlag = False
 
             detection(5, tx_location[0], tx_location[1])
 
+            # print(tx_location, nlos0, nlos1, nlos2, acc_data)
+            json_data = {
+                "tx_location": tx_location,
+                "nlos_state": [int(nlos0), int(nlos1), int(nlos2)],
+                "acc_data": acc_data,
+                "fp_rssi": [data[k][7], data[k][8], data[k][9]],
+                "rx_rssi": [data[k][11], data[k][12], data[k][13]]
+            }
+            print(json.dumps(json_data))
+
             # 计算RMSE 与 std
-            if k > change_index[now_index]:
-                now_index += 1
+            # if k > change_index[now_index]:
+            #     now_index += 1
+            #
+            # n_temp = change_index[now_index]
+            # if now_index > 1:
+            #     n_temp = change_index[now_index] - change_index[now_index - 1]
+            #
+            # if now_index % 2 == 0:
+            #     RMSE += (tx_location[0] - gtx[now_index % 4]) ** 2
+            #     STD += (avg_temp[now_index] / n_temp - gtx[now_index % 4]) ** 2
+            #     if now_index > 1:
+            #         cdf.append(math.fabs(tx_location[0] - gtx[now_index % 4]))
+            #     sum_temp[now_index] += gtx[now_index % 4]
+            # else:
+            #     RMSE += (tx_location[1] - gty[now_index % 4]) ** 2
+            #     STD += (avg_temp[now_index] / n_temp - gty[now_index % 4]) ** 2
+            #     if now_index > 1:
+            #         cdf.append(math.fabs(tx_location[1] - gty[now_index % 4]))
+            #     sum_temp[now_index] += gty[now_index % 4]
 
-            n_temp = change_index[now_index]
-            if now_index > 1:
-                n_temp = change_index[now_index] - change_index[now_index - 1]
-
-            if now_index % 2 == 0:
-                RMSE += (tx_location[0] - gtx[now_index % 4]) ** 2
-                STD += (avg_temp[now_index] / n_temp - gtx[now_index % 4]) ** 2
-                if now_index > 1:
-                    cdf.append(math.fabs(tx_location[0] - gtx[now_index % 4]))
-                sum_temp[now_index] += gtx[now_index % 4]
-            else:
-                RMSE += (tx_location[1] - gty[now_index % 4]) ** 2
-                STD += (avg_temp[now_index] / n_temp - gty[now_index % 4]) ** 2
-                if now_index > 1:
-                    cdf.append(math.fabs(tx_location[1] - gty[now_index % 4]))
-                sum_temp[now_index] += gty[now_index % 4]
-
-            print("RMSE: ", math.sqrt(RMSE / k))
-            print("STD: ", math.sqrt(STD / k))
+            # print("RMSE: ", math.sqrt(RMSE / k))
+            # print("STD: ", math.sqrt(STD / k))
             # print("sum_temp: ", sum_temp)
 
         time.sleep(0.05)  # 控制读取数据的速度
 
-    print("cdf: ", cdf)
+    # print("cdf: ", cdf)
+
 
 def calculateRate(warnNum, testNum):
     # 计算虚警概率与预警成功率，默认以数据集测试。

@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 # 光速
+import json
+
 C = 299702547
 
 # 每个时间戳的间隔时间
@@ -100,3 +102,37 @@ rx2 = [0, 0, 0]
 rx3 = [15, 0, 0]
 
 rx4 = [0, 0, 0]
+
+
+def set_config(config):
+    globals().update(config)
+    # print(globals())
+
+
+def get_config():
+    variables = globals()
+    serializable_variables = {
+        key: value for key, value in variables.items()
+        if isinstance(value, (int, float, str, list, dict)) and key != '__file__' and key != 'variables'
+           and key != 'serializable_variables' and key != '__name__' and key != '__annotations__'
+    }
+    return serializable_variables
+
+
+# if __name__ == '__main__':
+    # variables = globals()
+
+    # 过滤掉不能被 JSON 序列化的对象
+    # 比如函数、类和自定义对象等
+    # serializable_variables = {
+    #     key: value for key, value in variables.items()
+    #     if isinstance(value, (int, float, str, list, dict)) and key != '__file__' and key != 'variables'
+    #        and key != 'serializable_variables' and key != '__name__' and key != '__annotations__'
+    # }
+    # print(serializable_variables)
+    # # 保存到 JSON 文件
+    # with open('config.json', 'w') as f:
+    #     json.dump(serializable_variables, f)
+    # with open('config.json', 'r') as f:
+    #     variables = json.load(f)
+    #     set_config(variables)

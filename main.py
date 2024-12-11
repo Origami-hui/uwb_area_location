@@ -42,9 +42,10 @@ if __name__ == '__main__':
 
     else:
 
-        thd = threading.Thread(target=src.openDataV2, args=())
-        thd.setDaemon(True)
-        thd.start()
+        # thd = threading.Thread(target=src.openDataV2, args=())
+        # thd.setDaemon(True)
+        # thd.start()
+        src.openDataV2()
 
     if WARN_MOD_FLAG:
 
@@ -62,7 +63,7 @@ if __name__ == '__main__':
         warn = threading.Thread(target=src.warnSystem, args=(client,))
         warn.start()
 
-    src.visualization()
+    # src.visualization()
 
    
     
