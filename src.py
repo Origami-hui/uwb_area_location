@@ -102,20 +102,20 @@ def detection(tag_id, x, y):
             obsOmiga[tag_id - TX_STR_NUM].append(0)
 
     if x > max_x * 1.5 or x < min_x - 5 or y > max_y * 1.5 or y < min_y - 5:
-        print("越界异常坐标点：", x, y)
+        # print("越界异常坐标点：", x, y)
         return
 
     if FILTER_FLAG and len(obsX[tag_id - TX_STR_NUM]) >= 1 and \
             isAbnormalPoints(x, y, obsX[tag_id - TX_STR_NUM], obsY[tag_id - TX_STR_NUM]):
-        print("过滤异常坐标点：", x, y)
+        # print("过滤异常坐标点：", x, y)
         # 用卡尔曼滤波预测并重新赋值
         if HAVE_HUM and tag_id > TX_STR_NUM + TX_NUM - HUM_NUM:
             # 人员标签
             x, y = kalman_filter(obsX[tag_id - TX_STR_NUM], obsY[tag_id - TX_STR_NUM])
-        print("重新赋值为：", x, y)
+        # print("重新赋值为：", x, y)
         return
 
-    if FILTER_FLAG and len(obsX[tag_id - TX_STR_NUM]) >= 1 and tag_id <= TX_STR_NUM + TX_NUM - HUM_NUM:
+    if FILTER_FLAG and len(obsX[tag_id - TX_STR_NUM]) >= 1 and tag_id < TX_STR_NUM + TX_NUM - HUM_NUM:
         if len(obsTheta[tag_id - TX_STR_NUM]) > 0 and len(obsOmiga[tag_id - TX_STR_NUM]) > 0 \
                 and len(obsV[tag_id - TX_STR_NUM]) > 0:
             # 对于车辆标签，执行扩展卡尔曼滤波，返回预测
@@ -125,10 +125,10 @@ def detection(tag_id, x, y):
             dis = math.sqrt((tx - x) ** 2 + (ty - y) ** 2)
 
             avg_dis_diff.append(dis)
-            print("平均预测偏差：", sum(avg_dis_diff) / len(avg_dis_diff))
+            # print("平均预测偏差：", sum(avg_dis_diff) / len(avg_dis_diff))
 
             if dis > 6:
-                print("重新赋值")
+                # print("重新赋值")
                 x = (x + tx) / 2
                 y = (y + ty) / 2
 
@@ -143,7 +143,7 @@ def detection(tag_id, x, y):
         obsY[tag_id - TX_STR_NUM].pop(0)
         if len(obsV[tag_id - TX_STR_NUM]) > 0:
             obsV[tag_id - TX_STR_NUM].pop(0)
-        if tag_id <= TX_STR_NUM + TX_NUM - HUM_NUM and len(obsTheta[tag_id - TX_STR_NUM]) > 0 \
+        if tag_id < TX_STR_NUM + TX_NUM - HUM_NUM and len(obsTheta[tag_id - TX_STR_NUM]) > 0 \
                 and len(obsOmiga[tag_id - TX_STR_NUM]) > 0:
             obsTheta[tag_id - TX_STR_NUM].pop(0)
             obsOmiga[tag_id - TX_STR_NUM].pop(0)
@@ -159,7 +159,7 @@ def detection(tag_id, x, y):
         if len(i) == 0:
             have_data = False
 
-    if BUILD_RECT_FLAG and ((HAVE_HUM and TX_NUM >= 5) or (HAVE_HUM == False and TX_NUM >= 4)) and have_data:
+    if BUILD_RECT_FLAG and ((HAVE_HUM and TX_NUM >= 5) or (HAVE_HUM is False and TX_NUM >= 4)) and have_data:
         # 若启动构建矩形标志为真，且当前标签数量不少于4，且每个标签都至少有一个坐标数据
 
         re_x_temp, re_y_temp = build_rectangle(obsX, obsY)
@@ -176,7 +176,7 @@ def detection(tag_id, x, y):
 
         # 进行车辆转角修正
         shakeList = [cul_static_variance(obsX[i], obsY[i]) for i in range(4)]
-        print("抖动方差：", sum(shakeList) / len(shakeList))
+        # print("抖动方差：", sum(shakeList) / len(shakeList))
         totalShake = np.min(shakeList)  # 车辆标签位置抖动值
 
         if cur_cx - pre_cx != 0 or cur_cy - pre_cy != 0:
@@ -474,6 +474,7 @@ def visualization():
 
 
 def openData():
+    global re_x, re_y
     # if (FILTER_FLAG):
     #     smooth(R_DATA_FILE_NAME, "data/new_data.xls")
     #     df = pd.read_excel("data/new_data.xls")
@@ -495,11 +496,19 @@ def openData():
                 # print(data[i][3*j],data[i][3*j+1])
                 isSafe = detection(j + 5, data[k][3 * j], data[k][3 * j + 1])
 
+                json_data = {
+                    "tx_location": [data[k][3 * j], data[k][3 * j + 1]],
+                    "nlos_state": [0, 0, 0],
+                    "tag_id": j + 5,
+                    "area_location": [re_x, re_y]
+                }
+                print(json.dumps(json_data))
+
                 if k >= vaildIndexStart and j == 4 and HAVE_HUM:
                     testNum += 1
                     if not isSafe:
                         warnNum += 1
-                    print("当前概率：", calculateRate(warnNum, testNum))
+                    # print("当前概率：", calculateRate(warnNum, testNum))
 
         time.sleep(0.2)  # 控制读取数据的速度
 
@@ -515,7 +524,6 @@ def openDataV2():
     # RMSE = 0
     # STD = 0
     # sum_temp = [0 for _ in range(len(change_index))]
-    # avg_temp = [42.050000000000004, 10.199999999999998, 140.4, 340.19999999999976, 23.199999999999992, 6.599999999999999, 205.20000000000007, 132.3, 14.499999999999996, 10.199999999999998, 151.20000000000002]
     # cdf = []
 
     for k in range(1, len(data)):
@@ -545,9 +553,7 @@ def openDataV2():
             json_data = {
                 "tx_location": tx_location,
                 "nlos_state": [int(nlos0), int(nlos1), int(nlos2)],
-                "acc_data": acc_data,
-                "fp_rssi": [data[k][7], data[k][8], data[k][9]],
-                "rx_rssi": [data[k][11], data[k][12], data[k][13]]
+                "tag_id": 5
             }
             print(json.dumps(json_data))
 

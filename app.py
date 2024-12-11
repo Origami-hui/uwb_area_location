@@ -75,7 +75,7 @@ def run_location_script():
             if process_execute_flag is False:
                 break
             data = json.loads(line)
-            tx_location = data["tx_location"]
+            # tx_location = data["tx_location"]
             yield f"data: {line}\n\n"
 
         # # 处理错误输出（如果有）

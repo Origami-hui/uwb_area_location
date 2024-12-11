@@ -42,10 +42,13 @@ if __name__ == '__main__':
 
     else:
 
-        # thd = threading.Thread(target=src.openDataV2, args=())
+        # thd = threading.Thread(target=src.openData, args=())
         # thd.setDaemon(True)
         # thd.start()
-        src.openDataV2()
+        if R_DATA_FILE_NAME.startswith("data_nlos_imu_"):
+            src.openDataV2()
+        else:
+            src.openData()
 
     if WARN_MOD_FLAG:
 

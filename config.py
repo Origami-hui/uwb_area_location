@@ -21,7 +21,7 @@ CAR_LENGTH = 3.0
 RX_NUM = 3
 
 # 标签数量（车辆标签与人员标签之和）
-TX_NUM = 1
+TX_NUM = 5
 # 车辆标签起始编号
 TX_STR_NUM = 5
 # 是否有人员标签
@@ -33,7 +33,8 @@ HUM_NUM = 1
 SAVE_DATA_FLAG = False
 # 数据表名称（写与读）
 W_DATA_FILE_NAME = "data/data_nlos_imu_1204-7.xls"
-R_DATA_FILE_NAME = "data/data_nlos_imu_1204-5.xls"
+# R_DATA_FILE_NAME = "data/data_nlos_imu_1204-5.xls"
+R_DATA_FILE_NAME = "data/data_demo1.xls"
 
 # NLoS采集数据
 NLOS_DATA_NAME = "nlos dataset/nlos case1204-2.csv"
@@ -87,9 +88,9 @@ TDOA_FLAG = False
 # rx2 = [1, 1, 0]
 
 # 东门附近空地
-# rx3 = [0, 0, 0]
-# rx2 = [75, 0, 0]
-# rx1 = [37.5, 38, 0]
+rx3 = [0, 0, 0]
+rx2 = [75, 0, 0]
+rx1 = [37.5, 38, 0]
 
 # 房间
 # rx1 = [1.0, 2.75, 0]
@@ -97,9 +98,9 @@ TDOA_FLAG = False
 # rx3 = [2, 0, 0]
 
 # 1楼亭子
-rx1 = [7.4, 17.9, 0]
-rx2 = [0, 0, 0]
-rx3 = [15, 0, 0]
+# rx1 = [7.4, 17.9, 0]
+# rx2 = [0, 0, 0]
+# rx3 = [15, 0, 0]
 
 rx4 = [0, 0, 0]
 
