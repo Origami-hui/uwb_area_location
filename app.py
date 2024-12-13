@@ -1,10 +1,14 @@
+import io
 import json
 import subprocess
 import time
-import random
 
-from flask import Flask, jsonify, Response, request
-from flask_cors import CORS  # 导入 CORS
+import pandas as pd
+
+from config import *
+
+from flask import Flask, jsonify, Response, request, send_file
+from flask_cors import CORS, cross_origin  # 导入 CORS
 
 import config
 
@@ -85,6 +89,14 @@ def run_location_script():
 
     except Exception as e:
         yield f"data: An error occurred: {str(e)}\n\n"
+
+
+@app.route('/api/download-excel', methods=['GET'])
+@cross_origin()
+def download_excel():
+    # 发送文件给前端
+    return send_file("data/" + Config.R_DATA_FILE_NAME, as_attachment=True,
+                         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 
 if __name__ == '__main__':

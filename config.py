@@ -110,11 +110,8 @@ class Config:
 
 
 def set_config(config):
-    # global R_DATA_FILE_NAME
-    globals().update(config)
-    Config.R_DATA_FILE_NAME = config["R_DATA_FILE_NAME"]
-    # print(globals())
-    # print(Config.R_DATA_FILE_NAME)
+    for key, value in config.items():
+        setattr(Config, key, value)
 
 
 def get_config():
