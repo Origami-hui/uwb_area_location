@@ -9,7 +9,7 @@ from config import *
 tx_dict = {}
 rx_msr = {8193: 8193, 2: 8193, 3: 8193, 4: 8193}
 group_msr = {8193: [[2, 3, 4]]}
-RX_position = {8193: rx1, 2: rx2, 3: rx3, 4: rx4}
+RX_position = {8193: Config.rx1, 2: Config.rx2, 3: Config.rx3, 4: Config.rx4}
 
 # #定义抖动分析仪的全局变量
 # analysis={}
@@ -88,10 +88,10 @@ class timer:
         # check_array记录当前时间戳下定位的基站数
         for main_array in temp_main:       #V5.3改为遍历整个temp_main
             #V3中修改了符号
-            if main_array[1]>=RX_NUM:
-                if RX_NUM==3:
+            if main_array[1]>=Config.RX_NUM:
+                if Config.RX_NUM==3:
                     check_array.append(main_array[0])   #返回可以定位的主机站地址
-                elif RX_NUM==2:                                                   
+                elif Config.RX_NUM==2:
                     check_array.insert(0,main_array[0])   #测线优先级更高
                     
         return check_array
@@ -131,7 +131,7 @@ class timer:
             return [],Addrs,Stamps
         else:            #划分子区，直接将返回结果
             #print("----------辖区检测---------")
-            if TX_NUM==2:
+            if Config.TX_NUM==2:
                 for pair in group_msr[main_addr]:
                     one=pair[0]
                     if one in Addrs:
@@ -139,13 +139,13 @@ class timer:
                         temp_Addrs=[main_addr,pair[0]]
                         temp_Stamps=[Stamps[Addrs.index(m)] for m in temp_Addrs ]
                         distance=utils.distance2D(RX_position[temp_Addrs[0]],RX_position[temp_Addrs[1]])
-                        add_stamp=distance/C/Per_Stamp
+                        add_stamp=distance/Config.C/Config.Per_Stamp
                         temp_Stamps[1]=temp_Stamps[1]+add_stamp    #添加距离补偿
                         BS=[]       #坐标数组
                         for addr in temp_Addrs:               #取BS
                             BS.append(RX_position[addr])
                         R=[]
-                        R.append( C*Per_Stamp*(temp_Stamps[1]-temp_Stamps[0]) )
+                        R.append( Config.C*Config.Per_Stamp*(temp_Stamps[1]-temp_Stamps[0]) )
 
                         # print("debug",BS,R)       #首先我们解决Straight算法本身的问题
 
@@ -163,7 +163,7 @@ class timer:
                 #都不在 返回一个空结果 
                 return [],Addrs,Stamps   #自生自灭,并由正常TDOA进行维度选择
 
-            if RX_NUM==3:
+            if Config.RX_NUM==3:
                 
                 pair_num=len(group_msr[main_addr])
 
@@ -311,7 +311,7 @@ class tag:
                 
                 #本次将用来定位 则绘图
                 self.latest_Addrs=Addrs
-                if SAVE_DATA_FLAG:
+                if Config.SAVE_DATA_FLAG:
                     src.save_data(self.index, [result[0], result[1]])
                 src.detection(self.index, result[0], result[1])
 

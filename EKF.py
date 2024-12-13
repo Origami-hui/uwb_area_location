@@ -107,11 +107,11 @@ I = np.eye(5)
 
 
 def saveStates(tag_id, x, y, v, theta, omiga):
-    x_list[tag_id - TX_STR_NUM].append(x)
-    y_list[tag_id - TX_STR_NUM].append(y)
-    v_list[tag_id - TX_STR_NUM].append(v)
-    theta_list[tag_id - TX_STR_NUM].append(theta)
-    omiga_list[tag_id - TX_STR_NUM].append(omiga)
+    x_list[tag_id - Config.TX_STR_NUM].append(x)
+    y_list[tag_id - Config.TX_STR_NUM].append(y)
+    v_list[tag_id - Config.TX_STR_NUM].append(v)
+    theta_list[tag_id - Config.TX_STR_NUM].append(theta)
+    omiga_list[tag_id - Config.TX_STR_NUM].append(omiga)
 
 
 def ekf(tag_id, x, y, v, theta, omiga):
@@ -119,30 +119,30 @@ def ekf(tag_id, x, y, v, theta, omiga):
 
     saveStates(tag_id, x, y, v, theta, omiga)
 
-    if len(x_list[tag_id - TX_STR_NUM]) <= 1:
-        state[tag_id - TX_STR_NUM][0, 0] = x
-        state[tag_id - TX_STR_NUM][1, 0] = y
+    if len(x_list[tag_id - Config.TX_STR_NUM]) <= 1:
+        state[tag_id - Config.TX_STR_NUM][0, 0] = x
+        state[tag_id - Config.TX_STR_NUM][1, 0] = y
 
     t_measurement = [x, y, v / dt, theta, omiga / dt]
     z = np.array([[t_measurement[0]], [t_measurement[1]]])
 
-    # print(state[tag_id - TX_STR_NUM])
+    # print(state[tag_id - Config.TX_STR_NUM])
 
-    if np.abs(state[tag_id - TX_STR_NUM][4, 0]) < 0.1:
-        state[tag_id - TX_STR_NUM] = transition_function_1(state[tag_id - TX_STR_NUM].ravel().tolist(), dt)
-        state[tag_id - TX_STR_NUM][3, 0] = control_psi(state[tag_id - TX_STR_NUM][3, 0])
-        JA = J_A_1(state[tag_id - TX_STR_NUM].ravel().tolist(), dt)
+    if np.abs(state[tag_id - Config.TX_STR_NUM][4, 0]) < 0.1:
+        state[tag_id - Config.TX_STR_NUM] = transition_function_1(state[tag_id - Config.TX_STR_NUM].ravel().tolist(), dt)
+        state[tag_id - Config.TX_STR_NUM][3, 0] = control_psi(state[tag_id - Config.TX_STR_NUM][3, 0])
+        JA = J_A_1(state[tag_id - Config.TX_STR_NUM].ravel().tolist(), dt)
     else:
-        state[tag_id - TX_STR_NUM] = transition_function(state[tag_id - TX_STR_NUM].ravel().tolist(), dt)
-        state[tag_id - TX_STR_NUM][3, 0] = control_psi(state[tag_id - TX_STR_NUM][3, 0])
-        JA = J_A(state[tag_id - TX_STR_NUM].ravel().tolist(), dt)
+        state[tag_id - Config.TX_STR_NUM] = transition_function(state[tag_id - Config.TX_STR_NUM].ravel().tolist(), dt)
+        state[tag_id - Config.TX_STR_NUM][3, 0] = control_psi(state[tag_id - Config.TX_STR_NUM][3, 0])
+        JA = J_A(state[tag_id - Config.TX_STR_NUM].ravel().tolist(), dt)
 
     JA = np.squeeze(JA)
     # print(JA)
 
     G = np.zeros([5, 2])
-    G[0, 0] = 0.5 * dt * dt * np.cos(state[tag_id - TX_STR_NUM][3, 0])
-    G[1, 0] = 0.5 * dt * dt * np.sin(state[tag_id - TX_STR_NUM][3, 0])
+    G[0, 0] = 0.5 * dt * dt * np.cos(state[tag_id - Config.TX_STR_NUM][3, 0])
+    G[1, 0] = 0.5 * dt * dt * np.sin(state[tag_id - Config.TX_STR_NUM][3, 0])
     G[2, 0] = dt
     G[3, 1] = 0.5 * dt * dt
     G[4, 1] = dt
@@ -150,27 +150,27 @@ def ekf(tag_id, x, y, v, theta, omiga):
     Q_v = np.diag([std_noise_a * std_noise_a, std_noise_yaw_dd * std_noise_yaw_dd])
     Q = np.dot(np.dot(G, Q_v), G.T)
 
-    P[tag_id - TX_STR_NUM] = np.dot(np.dot(JA, P[tag_id - TX_STR_NUM]), JA.T) + Q
+    P[tag_id - Config.TX_STR_NUM] = np.dot(np.dot(JA, P[tag_id - Config.TX_STR_NUM]), JA.T) + Q
 
-    S = np.dot(np.dot(H[tag_id - TX_STR_NUM], P[tag_id - TX_STR_NUM]), H[tag_id - TX_STR_NUM].T) + R[
-        tag_id - TX_STR_NUM]
-    K = np.dot(np.dot(P[tag_id - TX_STR_NUM], H[tag_id - TX_STR_NUM].T), np.linalg.inv(S))
+    S = np.dot(np.dot(H[tag_id - Config.TX_STR_NUM], P[tag_id - Config.TX_STR_NUM]), H[tag_id - Config.TX_STR_NUM].T) + R[
+        tag_id - Config.TX_STR_NUM]
+    K = np.dot(np.dot(P[tag_id - Config.TX_STR_NUM], H[tag_id - Config.TX_STR_NUM].T), np.linalg.inv(S))
 
-    ky = z - np.dot(H[tag_id - TX_STR_NUM], state[tag_id - TX_STR_NUM])
+    ky = z - np.dot(H[tag_id - Config.TX_STR_NUM], state[tag_id - Config.TX_STR_NUM])
     ky[1, 0] = control_psi(ky[1, 0])
-    state[tag_id - TX_STR_NUM] = state[tag_id - TX_STR_NUM] + np.dot(K, ky)
-    state[tag_id - TX_STR_NUM][3, 0] = control_psi(state[tag_id - TX_STR_NUM][3, 0])
+    state[tag_id - Config.TX_STR_NUM] = state[tag_id - Config.TX_STR_NUM] + np.dot(K, ky)
+    state[tag_id - Config.TX_STR_NUM][3, 0] = control_psi(state[tag_id - Config.TX_STR_NUM][3, 0])
     # Update the error covariance
-    P[tag_id - TX_STR_NUM] = np.dot((I - np.dot(K, H[tag_id - TX_STR_NUM])), P[tag_id - TX_STR_NUM])
+    P[tag_id - Config.TX_STR_NUM] = np.dot((I - np.dot(K, H[tag_id - Config.TX_STR_NUM])), P[tag_id - Config.TX_STR_NUM])
 
-    # state[tag_id - TX_STR_NUM] = state[tag_id - TX_STR_NUM].ravel().tolist()
-    # print(state[tag_id - TX_STR_NUM])
-    return state[tag_id - TX_STR_NUM][0, 0], state[tag_id - TX_STR_NUM][1, 0]
+    # state[tag_id - Config.TX_STR_NUM] = state[tag_id - Config.TX_STR_NUM].ravel().tolist()
+    # print(state[tag_id - Config.TX_STR_NUM])
+    return state[tag_id - Config.TX_STR_NUM][0, 0], state[tag_id - Config.TX_STR_NUM][1, 0]
 
 
 def resetState(tag_id, x, y, v, theta, omiga):
-    state[tag_id - TX_STR_NUM][0, 0] = x
-    state[tag_id - TX_STR_NUM][1, 0] = y
-    state[tag_id - TX_STR_NUM][2, 0] = v
-    state[tag_id - TX_STR_NUM][3, 0] = theta
-    state[tag_id - TX_STR_NUM][4, 0] = omiga
+    state[tag_id - Config.TX_STR_NUM][0, 0] = x
+    state[tag_id - Config.TX_STR_NUM][1, 0] = y
+    state[tag_id - Config.TX_STR_NUM][2, 0] = v
+    state[tag_id - Config.TX_STR_NUM][3, 0] = theta
+    state[tag_id - Config.TX_STR_NUM][4, 0] = omiga

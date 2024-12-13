@@ -15,7 +15,7 @@ from config import *
 preAngle = []  # 矩形角度缓存池
 correctAngle = 0
 
-clf_loaded = joblib.load(NLOS_MODEL_NAME)
+clf_loaded = joblib.load(Config.NLOS_MODEL_NAME)
 
 
 def cul_tx_location(tag_id, dis_list):
@@ -24,9 +24,9 @@ def cul_tx_location(tag_id, dis_list):
 
     if len(dis_list) == 3:
 
-        [x0, y0] = two_point_location(dis_list[0], dis_list[1], dis_list[2], rx1, rx2, rx3)
-        [x1, y1] = two_point_location(dis_list[1], dis_list[2], dis_list[0], rx2, rx3, rx1)
-        [x2, y2] = two_point_location(dis_list[2], dis_list[0], dis_list[1], rx3, rx1, rx2)
+        [x0, y0] = two_point_location(dis_list[0], dis_list[1], dis_list[2], Config.rx1, Config.rx2, Config.rx3)
+        [x1, y1] = two_point_location(dis_list[1], dis_list[2], dis_list[0], Config.rx2, Config.rx3, Config.rx1)
+        [x2, y2] = two_point_location(dis_list[2], dis_list[0], dis_list[1], Config.rx3, Config.rx1, Config.rx2)
 
         # 取三角形中心作为定位坐标
         x = (x0 + x1 + x2) / 3
@@ -39,10 +39,10 @@ def cul_tx_location(tag_id, dis_list):
 
     elif len(dis_list) == 4:
 
-        [x0, y0] = two_point_location(dis_list[0], dis_list[1], dis_list[2], rx1, rx2, rx3)
-        [x1, y1] = two_point_location(dis_list[1], dis_list[2], dis_list[3], rx2, rx3, rx4)
-        [x2, y2] = two_point_location(dis_list[2], dis_list[3], dis_list[0], rx3, rx4, rx1)
-        [x3, y3] = two_point_location(dis_list[3], dis_list[0], dis_list[1], rx4, rx1, rx2)
+        [x0, y0] = two_point_location(dis_list[0], dis_list[1], dis_list[2], Config.rx1, Config.rx2, Config.rx3)
+        [x1, y1] = two_point_location(dis_list[1], dis_list[2], dis_list[3], Config.rx2, Config.rx3, Config.rx4)
+        [x2, y2] = two_point_location(dis_list[2], dis_list[3], dis_list[0], Config.rx3, Config.rx4, Config.rx1)
+        [x3, y3] = two_point_location(dis_list[3], dis_list[0], dis_list[1], Config.rx4, Config.rx1, Config.rx2)
 
         # 取中心作为定位坐标
         x = (x0 + x1 + x2 + x3) / 4
@@ -121,8 +121,8 @@ def coordinateCorrection(polygon):
     # scale_y = CAR_LENGTH / (max_y - min_y)
     # scaled_polygon = [((p[0] - min_x) * scale_x, (p[1] - min_y) * scale_y) for p in rotated_polygon]
 
-    scaled_polygon = [[-CAR_WIDTH / 2, CAR_LENGTH / 2], [CAR_WIDTH / 2, CAR_LENGTH / 2],
-                      [CAR_WIDTH / 2, -CAR_LENGTH / 2], [-CAR_WIDTH / 2, -CAR_LENGTH / 2]]
+    scaled_polygon = [[-Config.CAR_WIDTH / 2, Config.CAR_LENGTH / 2], [Config.CAR_WIDTH / 2, Config.CAR_LENGTH / 2],
+                      [Config.CAR_WIDTH / 2, -Config.CAR_LENGTH / 2], [-Config.CAR_WIDTH / 2, -Config.CAR_LENGTH / 2]]
 
     # 将多边形旋转回原来的角度
     inverted_rotation_matrix = [[math.cos(angle), -math.sin(angle)], [math.sin(angle), math.cos(angle)]]
@@ -316,23 +316,23 @@ def extendArea(re_x, re_y):
     if len(re_x) == 4:
         # 该多边形为四边形
 
-        AB1 = [THRES_DIS * (re_y[0] - re_y[1]) / (math.sqrt((re_y[0] - re_y[1]) ** 2 + (re_x[1] - re_x[0]) ** 2)),
-               THRES_DIS * (re_x[1] - re_x[0]) / (math.sqrt((re_y[0] - re_y[1]) ** 2 + (re_x[1] - re_x[0]) ** 2))]
+        AB1 = [Config.THRES_DIS * (re_y[0] - re_y[1]) / (math.sqrt((re_y[0] - re_y[1]) ** 2 + (re_x[1] - re_x[0]) ** 2)),
+               Config.THRES_DIS * (re_x[1] - re_x[0]) / (math.sqrt((re_y[0] - re_y[1]) ** 2 + (re_x[1] - re_x[0]) ** 2))]
         k1 = (re_y[1] - re_y[0]) / (re_x[1] - re_x[0])
         b1 = re_y[0] + AB1[1] - k1 * (re_x[0] + AB1[0])
 
-        BC1 = [THRES_DIS * (re_y[1] - re_y[2]) / (math.sqrt((re_y[1] - re_y[2]) ** 2 + (re_x[2] - re_x[1]) ** 2)),
-               THRES_DIS * (re_x[2] - re_x[1]) / (math.sqrt((re_y[1] - re_y[2]) ** 2 + (re_x[2] - re_x[1]) ** 2))]
+        BC1 = [Config.THRES_DIS * (re_y[1] - re_y[2]) / (math.sqrt((re_y[1] - re_y[2]) ** 2 + (re_x[2] - re_x[1]) ** 2)),
+               Config.THRES_DIS * (re_x[2] - re_x[1]) / (math.sqrt((re_y[1] - re_y[2]) ** 2 + (re_x[2] - re_x[1]) ** 2))]
         k2 = (re_y[2] - re_y[1]) / (re_x[2] - re_x[1])
         b2 = re_y[1] + BC1[1] - k2 * (re_x[1] + BC1[0])
 
-        CD1 = [THRES_DIS * (re_y[2] - re_y[3]) / (math.sqrt((re_y[2] - re_y[3]) ** 2 + (re_x[3] - re_x[2]) ** 2)),
-               THRES_DIS * (re_x[3] - re_x[2]) / (math.sqrt((re_y[2] - re_y[3]) ** 2 + (re_x[3] - re_x[2]) ** 2))]
+        CD1 = [Config.THRES_DIS * (re_y[2] - re_y[3]) / (math.sqrt((re_y[2] - re_y[3]) ** 2 + (re_x[3] - re_x[2]) ** 2)),
+               Config.THRES_DIS * (re_x[3] - re_x[2]) / (math.sqrt((re_y[2] - re_y[3]) ** 2 + (re_x[3] - re_x[2]) ** 2))]
         k3 = (re_y[3] - re_y[2]) / (re_x[3] - re_x[2])
         b3 = re_y[2] + CD1[1] - k3 * (re_x[2] + CD1[0])
 
-        DA1 = [THRES_DIS * (re_y[3] - re_y[0]) / (math.sqrt((re_y[3] - re_y[0]) ** 2 + (re_x[0] - re_x[3]) ** 2)),
-               THRES_DIS * (re_x[0] - re_x[3]) / (math.sqrt((re_y[3] - re_y[0]) ** 2 + (re_x[0] - re_x[3]) ** 2))]
+        DA1 = [Config.THRES_DIS * (re_y[3] - re_y[0]) / (math.sqrt((re_y[3] - re_y[0]) ** 2 + (re_x[0] - re_x[3]) ** 2)),
+               Config.THRES_DIS * (re_x[0] - re_x[3]) / (math.sqrt((re_y[3] - re_y[0]) ** 2 + (re_x[0] - re_x[3]) ** 2))]
         k4 = (re_y[0] - re_y[3]) / (re_x[0] - re_x[3])
         b4 = re_y[3] + DA1[1] - k4 * (re_x[3] + DA1[0])
 
@@ -352,18 +352,18 @@ def extendArea(re_x, re_y):
     elif len(re_x) == 3:
 
         # 该多边形为三角形
-        AB1 = [THRES_DIS * (re_y[0] - re_y[1]) / (math.sqrt((re_y[0] - re_y[1]) ** 2 + (re_x[1] - re_x[0]) ** 2)),
-               THRES_DIS * (re_x[1] - re_x[0]) / (math.sqrt((re_y[0] - re_y[1]) ** 2 + (re_x[1] - re_x[0]) ** 2))]
+        AB1 = [Config.THRES_DIS * (re_y[0] - re_y[1]) / (math.sqrt((re_y[0] - re_y[1]) ** 2 + (re_x[1] - re_x[0]) ** 2)),
+               Config.THRES_DIS * (re_x[1] - re_x[0]) / (math.sqrt((re_y[0] - re_y[1]) ** 2 + (re_x[1] - re_x[0]) ** 2))]
         k1 = (re_y[1] - re_y[0]) / (re_x[1] - re_x[0])
         b1 = re_y[0] + AB1[1] - k1 * (re_x[0] + AB1[0])
 
-        BC1 = [THRES_DIS * (re_y[1] - re_y[2]) / (math.sqrt((re_y[1] - re_y[2]) ** 2 + (re_x[2] - re_x[1]) ** 2)),
-               THRES_DIS * (re_x[2] - re_x[1]) / (math.sqrt((re_y[1] - re_y[2]) ** 2 + (re_x[2] - re_x[1]) ** 2))]
+        BC1 = [Config.THRES_DIS * (re_y[1] - re_y[2]) / (math.sqrt((re_y[1] - re_y[2]) ** 2 + (re_x[2] - re_x[1]) ** 2)),
+               Config.THRES_DIS * (re_x[2] - re_x[1]) / (math.sqrt((re_y[1] - re_y[2]) ** 2 + (re_x[2] - re_x[1]) ** 2))]
         k2 = (re_y[2] - re_y[1]) / (re_x[2] - re_x[1])
         b2 = re_y[1] + BC1[1] - k2 * (re_x[1] + BC1[0])
 
-        CA1 = [THRES_DIS * (re_y[2] - re_y[0]) / (math.sqrt((re_y[2] - re_y[0]) ** 2 + (re_x[0] - re_x[2]) ** 2)),
-               THRES_DIS * (re_x[0] - re_x[2]) / (math.sqrt((re_y[2] - re_y[0]) ** 2 + (re_x[0] - re_x[2]) ** 2))]
+        CA1 = [Config.THRES_DIS * (re_y[2] - re_y[0]) / (math.sqrt((re_y[2] - re_y[0]) ** 2 + (re_x[0] - re_x[2]) ** 2)),
+               Config.THRES_DIS * (re_x[0] - re_x[2]) / (math.sqrt((re_y[2] - re_y[0]) ** 2 + (re_x[0] - re_x[2]) ** 2))]
         k3 = (re_y[0] - re_y[2]) / (re_x[0] - re_x[2])
         b3 = re_y[2] + CA1[1] - k3 * (re_x[2] + CA1[0])
 
@@ -384,8 +384,8 @@ def extendArea(re_x, re_y):
         # 该多边形为直线
         SQRT = math.sqrt((re_x[1] - re_x[0]) ** 2 + (re_y[1] - re_y[0]) ** 2)
 
-        return [[re_x[0] - THRES_DIS * (re_x[1] - re_x[0]) / SQRT, re_x[1] + THRES_DIS * (re_x[1] - re_x[0]) / SQRT],
-                [re_y[0] - THRES_DIS * (re_y[1] - re_y[0]) / SQRT, re_y[1] + THRES_DIS * (re_y[1] - re_y[0]) / SQRT]]
+        return [[re_x[0] - Config.THRES_DIS * (re_x[1] - re_x[0]) / SQRT, re_x[1] + Config.THRES_DIS * (re_x[1] - re_x[0]) / SQRT],
+                [re_y[0] - Config.THRES_DIS * (re_y[1] - re_y[0]) / SQRT, re_y[1] + Config.THRES_DIS * (re_y[1] - re_y[0]) / SQRT]]
     else:
         return
 
@@ -409,8 +409,8 @@ def towardsVDir(totalShake, re_x, re_y, dx, dy):
     avg_x = sum(re_x) / len(re_x)
     avg_y = sum(re_y) / len(re_y)
 
-    halfwidth = CAR_WIDTH / 2
-    halflength = CAR_LENGTH / 2
+    halfwidth = Config.CAR_WIDTH / 2
+    halflength = Config.CAR_LENGTH / 2
 
     # 单位化方向向量，用于绘制箭头，以及计算车辆4个顶点坐标
     if dx == 0 and dy == 0:
@@ -1232,7 +1232,7 @@ def Wrap_Fang2D(Addrs, Stamps):
 
     for i in range(rx_num):
         distance = distance2D(RX_position[Addrs[i]], RX_position[refer_addr])
-        add_stamp = distance / C / Per_Stamp
+        add_stamp = distance / Config.C / Config.Per_Stamp
         Stamps[i] = Stamps[i] + add_stamp  # 添加距离补偿
 
     # print("Sim_fang")
@@ -1242,7 +1242,7 @@ def Wrap_Fang2D(Addrs, Stamps):
 
     R = []
     for i in range(1, BSN):
-        R.append(C * Per_Stamp * (Stamps[i] - Stamps[0]))
+        R.append(Config.C * Config.Per_Stamp * (Stamps[i] - Stamps[0]))
 
     BS0 = BS[0]
 

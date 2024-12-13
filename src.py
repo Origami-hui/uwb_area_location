@@ -7,28 +7,29 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import xlwt as xlwt
 from PIL import Image
-
+from config import *
 from EKF import *
+from dao import *
 from twr_interface import *
 
 # 储存全局变量
 
-if RX_NUM == 3:
+if Config.RX_NUM == 3:
 
-    min_x = min(rx1[0], rx2[0], rx3[0])
-    min_y = min(rx1[1], rx2[1], rx3[1])
-    max_x = max(rx1[0], rx2[0], rx3[0])
-    max_y = max(rx1[1], rx2[1], rx3[1])
+    min_x = min(Config.rx1[0], Config.rx2[0], Config.rx3[0])
+    min_y = min(Config.rx1[1], Config.rx2[1], Config.rx3[1])
+    max_x = max(Config.rx1[0], Config.rx2[0], Config.rx3[0])
+    max_y = max(Config.rx1[1], Config.rx2[1], Config.rx3[1])
 
-elif RX_NUM == 4:
-    min_x = min(rx1[0], rx2[0], rx3[0], rx4[0])
-    min_y = min(rx1[1], rx2[1], rx3[1], rx4[1])
-    max_x = max(rx1[0], rx2[0], rx3[0], rx4[0])
-    max_y = max(rx1[1], rx2[1], rx3[1], rx4[1])
+elif Config.RX_NUM == 4:
+    min_x = min(Config.rx1[0], Config.rx2[0], Config.rx3[0], Config.rx4[0])
+    min_y = min(Config.rx1[1], Config.rx2[1], Config.rx3[1], Config.rx4[1])
+    max_x = max(Config.rx1[0], Config.rx2[0], Config.rx3[0], Config.rx4[0])
+    max_y = max(Config.rx1[1], Config.rx2[1], Config.rx3[1], Config.rx4[1])
 
 # 当前观测坐标
-obsX, obsY = [[] for _ in range(TX_NUM)], [[] for _ in range(TX_NUM)]
-obsV = [[] for _ in range(TX_NUM)]
+obsX, obsY = [[] for _ in range(Config.TX_NUM)], [[] for _ in range(Config.TX_NUM)]
+obsV = [[] for _ in range(Config.TX_NUM)]
 obsTheta = [[] for _ in range(4)]
 obsOmiga = [[] for _ in range(4)]
 
@@ -45,7 +46,7 @@ ax.set_aspect(1)
 wb = xlwt.Workbook()
 
 ws = wb.add_sheet('location_data')  # 添加一个表
-ri = [0 for _ in range(TX_NUM)]
+ri = [0 for _ in range(Config.TX_NUM)]
 
 re_x, re_y = [], []  # 构建多边形坐标值
 ex_x, ex_y = [], []  # 扩展多边形坐标值
@@ -83,44 +84,44 @@ def detection(tag_id, x, y):
     global unitized_dx, unitized_dy, ex_x, ex_y, obsX, obsY, re_x, re_y, warnFlag, \
         pre_cx, pre_cy, STR_FLAG, matrix_list, S_list, towards_list, org_x, org_y, avg_dis_diff
 
-    if len(obsX[tag_id - TX_STR_NUM]) > 1:
-        obsV[tag_id - TX_STR_NUM].append(math.sqrt((obsX[tag_id - TX_STR_NUM][-1] - obsX[tag_id - TX_STR_NUM][-2]) ** 2
-                                                   + (obsY[tag_id - TX_STR_NUM][-1] - obsY[tag_id - TX_STR_NUM][
-            -2]) ** 2) / LOCATION_FREQ)
+    if len(obsX[tag_id - Config.TX_STR_NUM]) > 1:
+        obsV[tag_id - Config.TX_STR_NUM].append(math.sqrt((obsX[tag_id - Config.TX_STR_NUM][-1] - obsX[tag_id - Config.TX_STR_NUM][-2]) ** 2
+                                                   + (obsY[tag_id - Config.TX_STR_NUM][-1] - obsY[tag_id - Config.TX_STR_NUM][
+            -2]) ** 2) / Config.LOCATION_FREQ)
     else:
-        obsV[tag_id - TX_STR_NUM].append(0.0)
-    if tag_id < TX_STR_NUM + TX_NUM - HUM_NUM:
+        obsV[tag_id - Config.TX_STR_NUM].append(0.0)
+    if tag_id < Config.TX_STR_NUM + Config.TX_NUM - Config.HUM_NUM:
         if len(towards_list) > 0:
-            obsTheta[tag_id - TX_STR_NUM].append(towards_list[-1])
+            obsTheta[tag_id - Config.TX_STR_NUM].append(towards_list[-1])
             if len(obsTheta) > 1:
-                obsOmiga[tag_id - TX_STR_NUM].append(
-                    obsTheta[tag_id - TX_STR_NUM][-1] - obsTheta[tag_id - TX_STR_NUM][-2])
+                obsOmiga[tag_id - Config.TX_STR_NUM].append(
+                    obsTheta[tag_id - Config.TX_STR_NUM][-1] - obsTheta[tag_id - Config.TX_STR_NUM][-2])
             else:
-                obsOmiga[tag_id - TX_STR_NUM].append(0)
+                obsOmiga[tag_id - Config.TX_STR_NUM].append(0)
         else:
-            obsTheta[tag_id - TX_STR_NUM].append(0)
-            obsOmiga[tag_id - TX_STR_NUM].append(0)
+            obsTheta[tag_id - Config.TX_STR_NUM].append(0)
+            obsOmiga[tag_id - Config.TX_STR_NUM].append(0)
 
     if x > max_x * 1.5 or x < min_x - 5 or y > max_y * 1.5 or y < min_y - 5:
         # print("越界异常坐标点：", x, y)
         return
 
-    if FILTER_FLAG and len(obsX[tag_id - TX_STR_NUM]) >= 1 and \
-            isAbnormalPoints(x, y, obsX[tag_id - TX_STR_NUM], obsY[tag_id - TX_STR_NUM]):
+    if Config.FILTER_FLAG and len(obsX[tag_id - Config.TX_STR_NUM]) >= 1 and \
+            isAbnormalPoints(x, y, obsX[tag_id - Config.TX_STR_NUM], obsY[tag_id - Config.TX_STR_NUM]):
         # print("过滤异常坐标点：", x, y)
         # 用卡尔曼滤波预测并重新赋值
-        if HAVE_HUM and tag_id > TX_STR_NUM + TX_NUM - HUM_NUM:
+        if Config.HAVE_HUM and tag_id > Config.TX_STR_NUM + Config.TX_NUM - Config.HUM_NUM:
             # 人员标签
-            x, y = kalman_filter(obsX[tag_id - TX_STR_NUM], obsY[tag_id - TX_STR_NUM])
+            x, y = kalman_filter(obsX[tag_id - Config.TX_STR_NUM], obsY[tag_id - Config.TX_STR_NUM])
         # print("重新赋值为：", x, y)
         return
 
-    if FILTER_FLAG and len(obsX[tag_id - TX_STR_NUM]) >= 1 and tag_id < TX_STR_NUM + TX_NUM - HUM_NUM:
-        if len(obsTheta[tag_id - TX_STR_NUM]) > 0 and len(obsOmiga[tag_id - TX_STR_NUM]) > 0 \
-                and len(obsV[tag_id - TX_STR_NUM]) > 0:
+    if Config.FILTER_FLAG and len(obsX[tag_id - Config.TX_STR_NUM]) >= 1 and tag_id < Config.TX_STR_NUM + Config.TX_NUM - Config.HUM_NUM:
+        if len(obsTheta[tag_id - Config.TX_STR_NUM]) > 0 and len(obsOmiga[tag_id - Config.TX_STR_NUM]) > 0 \
+                and len(obsV[tag_id - Config.TX_STR_NUM]) > 0:
             # 对于车辆标签，执行扩展卡尔曼滤波，返回预测
-            tx, ty = ekf(tag_id, x, y, obsV[tag_id - TX_STR_NUM][-1], obsTheta[tag_id - TX_STR_NUM][-1],
-                         obsOmiga[tag_id - TX_STR_NUM][-1])
+            tx, ty = ekf(tag_id, x, y, obsV[tag_id - Config.TX_STR_NUM][-1], obsTheta[tag_id - Config.TX_STR_NUM][-1],
+                         obsOmiga[tag_id - Config.TX_STR_NUM][-1])
             # tx, ty = kalman_filter(obsX[tag_id - TX_STR_NUM], obsY[tag_id - TX_STR_NUM])
             dis = math.sqrt((tx - x) ** 2 + (ty - y) ** 2)
 
@@ -132,21 +133,21 @@ def detection(tag_id, x, y):
                 x = (x + tx) / 2
                 y = (y + ty) / 2
 
-            resetState(tag_id, x, y, obsV[tag_id - TX_STR_NUM][-1], obsTheta[tag_id - TX_STR_NUM][-1],
-                       obsOmiga[tag_id - TX_STR_NUM][-1])
+            resetState(tag_id, x, y, obsV[tag_id - Config.TX_STR_NUM][-1], obsTheta[tag_id - Config.TX_STR_NUM][-1],
+                       obsOmiga[tag_id - Config.TX_STR_NUM][-1])
 
-    obsX[tag_id - TX_STR_NUM].append(x)
-    obsY[tag_id - TX_STR_NUM].append(y)
+    obsX[tag_id - Config.TX_STR_NUM].append(x)
+    obsY[tag_id - Config.TX_STR_NUM].append(y)
 
-    if len(obsY[tag_id - TX_STR_NUM]) > 64:
-        obsX[tag_id - TX_STR_NUM].pop(0)
-        obsY[tag_id - TX_STR_NUM].pop(0)
-        if len(obsV[tag_id - TX_STR_NUM]) > 0:
-            obsV[tag_id - TX_STR_NUM].pop(0)
-        if tag_id < TX_STR_NUM + TX_NUM - HUM_NUM and len(obsTheta[tag_id - TX_STR_NUM]) > 0 \
-                and len(obsOmiga[tag_id - TX_STR_NUM]) > 0:
-            obsTheta[tag_id - TX_STR_NUM].pop(0)
-            obsOmiga[tag_id - TX_STR_NUM].pop(0)
+    if len(obsY[tag_id - Config.TX_STR_NUM]) > 64:
+        obsX[tag_id - Config.TX_STR_NUM].pop(0)
+        obsY[tag_id - Config.TX_STR_NUM].pop(0)
+        if len(obsV[tag_id - Config.TX_STR_NUM]) > 0:
+            obsV[tag_id - Config.TX_STR_NUM].pop(0)
+        if tag_id < Config.TX_STR_NUM + Config.TX_NUM - Config.HUM_NUM and len(obsTheta[tag_id - Config.TX_STR_NUM]) > 0 \
+                and len(obsOmiga[tag_id - Config.TX_STR_NUM]) > 0:
+            obsTheta[tag_id - Config.TX_STR_NUM].pop(0)
+            obsOmiga[tag_id - Config.TX_STR_NUM].pop(0)
 
     # if FILTER_FLAG and len(obsY[tag_id-TX_STR_NUM])>= 8:
     #     print("x：", obsX[tag_id-TX_STR_NUM])
@@ -159,7 +160,7 @@ def detection(tag_id, x, y):
         if len(i) == 0:
             have_data = False
 
-    if BUILD_RECT_FLAG and ((HAVE_HUM and TX_NUM >= 5) or (HAVE_HUM is False and TX_NUM >= 4)) and have_data:
+    if Config.BUILD_RECT_FLAG and ((Config.HAVE_HUM and Config.TX_NUM >= 5) or (Config.HAVE_HUM is False and Config.TX_NUM >= 4)) and have_data:
         # 若启动构建矩形标志为真，且当前标签数量不少于4，且每个标签都至少有一个坐标数据
 
         re_x_temp, re_y_temp = build_rectangle(obsX, obsY)
@@ -182,7 +183,7 @@ def detection(tag_id, x, y):
         if cur_cx - pre_cx != 0 or cur_cy - pre_cy != 0:
             STR_FLAG = True
 
-        if pre_cx != 0 and STR_FLAG and TOWARDS_COR_FLAG:
+        if pre_cx != 0 and STR_FLAG and Config.TOWARDS_COR_FLAG:
             # 如果存在偏移，且上一车辆中心区域不为空，则进行转向矫正，否则不矫正
             re_x, re_y, unitized_dx, unitized_dy = towardsVDir(totalShake, re_x_temp, re_y_temp, cur_cx - pre_cx,
                                                                cur_cy - pre_cy)
@@ -222,7 +223,7 @@ def detection(tag_id, x, y):
         # print("车身转向抖动标准差：", cul_towards_variance(towards_list))
 
         # 如果有人员标签，且当前解算坐标的标签就是人员标签，进行碰撞检测
-        if HAVE_HUM and tag_id > TX_STR_NUM + TX_NUM - HUM_NUM:
+        if Config.HAVE_HUM and tag_id > Config.TX_STR_NUM + Config.TX_NUM - Config.HUM_NUM:
             ex_x, ex_y, is_save = collisionDetection(re_x, re_y, x, y)
             # print("当前安全情况：", isSave)
             warnFlag = is_save
@@ -230,26 +231,26 @@ def detection(tag_id, x, y):
 
 
 def merge_location(tag_id, tx_location, imu_acc, nlos_num):
-    if len(obsX[tag_id - TX_STR_NUM]) > 1:
+    if len(obsX[tag_id - Config.TX_STR_NUM]) > 1:
         # print(obsX[tag_id - TX_STR_NUM][-1], obsY[tag_id - TX_STR_NUM][-1])
         # acc = math.sqrt(imu_acc[0] ** 2 + imu_acc[1] ** 2)
-        speed_temp = [(obsX[tag_id - TX_STR_NUM][-1] - obsX[tag_id - TX_STR_NUM][-2]) * LOCATION_FREQ,
-                      (obsY[tag_id - TX_STR_NUM][-1] - obsY[tag_id - TX_STR_NUM][-2]) * LOCATION_FREQ]
+        speed_temp = [(obsX[tag_id - Config.TX_STR_NUM][-1] - obsX[tag_id - Config.TX_STR_NUM][-2]) * Config.LOCATION_FREQ,
+                      (obsY[tag_id - Config.TX_STR_NUM][-1] - obsY[tag_id - Config.TX_STR_NUM][-2]) * Config.LOCATION_FREQ]
         dir_temp = [speed_temp[0] / math.sqrt(speed_temp[0] ** 2 + speed_temp[1] ** 2),
                     speed_temp[1] / math.sqrt(speed_temp[0] ** 2 + speed_temp[1] ** 2)]
         # (x, y) = (c⋅a+d⋅b, −c⋅b+d⋅a)
         acc_spec = [imu_acc[0] * dir_temp[1] + imu_acc[1] * dir_temp[0],
                     -imu_acc[0] * dir_temp[0] + imu_acc[1] * dir_temp[1]]
         v_temp = [
-            obsX[tag_id - TX_STR_NUM][-1] + 0.5 * acc_spec[0] / (LOCATION_FREQ ** 2),
-            obsY[tag_id - TX_STR_NUM][-1] + 0.5 * acc_spec[1] / (LOCATION_FREQ ** 2)]
+            obsX[tag_id - Config.TX_STR_NUM][-1] + 0.5 * acc_spec[0] / (Config.LOCATION_FREQ ** 2),
+            obsY[tag_id - Config.TX_STR_NUM][-1] + 0.5 * acc_spec[1] / (Config.LOCATION_FREQ ** 2)]
         # 根据处于nlos的信号数量决定最终坐标点到虚拟点和定位点的权重
         weight = cul_weight(nlos_num)
         return [v_temp[0] + weight * (tx_location[0] - v_temp[0]), v_temp[1] + weight * (tx_location[1] - v_temp[1])]
 
-    elif len(obsX[tag_id - TX_STR_NUM]) == 1:
+    elif len(obsX[tag_id - Config.TX_STR_NUM]) == 1:
         # 如果缓存池只有一个数据，直接用这个数据返回
-        return [obsX[tag_id - TX_STR_NUM][0], obsY[tag_id - TX_STR_NUM][0]]
+        return [obsX[tag_id - Config.TX_STR_NUM][0], obsY[tag_id - Config.TX_STR_NUM][0]]
 
     return tx_location
 
@@ -271,7 +272,7 @@ gty = [9.45, 0.6, 0.6, 9.45, 9.45]
 def plot_init():
     ax.set_xlim(min_x - 1, max_x + 1)
     ax.set_ylim(min_y - 1, max_y + 1)
-    sc = plt.scatter([rx1[0], rx2[0], rx3[0]], [rx1[1], rx2[1], rx3[1]], c="k")
+    sc = plt.scatter([Config.rx1[0], Config.rx2[0], Config.rx3[0]], [Config.rx1[1], Config.rx2[1], Config.rx3[1]], c="k")
 
     # 绘制ground true矩形
     rect, = plt.plot(gtx, gty, "k")
@@ -295,26 +296,26 @@ def plot_update(i):
 
     tup = tuple()
 
-    if CAR_TX_RENDER_FLAG:
-        sc = [_ for _ in range(TX_NUM)]
-        for k in range(TX_NUM):
+    if Config.CAR_TX_RENDER_FLAG:
+        sc = [_ for _ in range(Config.TX_NUM)]
+        for k in range(Config.TX_NUM):
             if nlosFlag:
                 sc[k] = plt.scatter(X_copy[k][-1:], Y_copy[k][-1:], marker='+', c='g')
             else:
                 sc[k] = plt.scatter(X_copy[k][-1:], Y_copy[k][-1:], marker='+', c=c_list[k])
         tup = tuple(each for each in sc)
-    elif CAR_TX_RENDER_FLAG is False and HAVE_HUM:
+    elif Config.CAR_TX_RENDER_FLAG is False and Config.HAVE_HUM:
         sc = [[]]
         if len(X_copy) > 4:
             sc[0] = plt.scatter(X_copy[4][-1:], Y_copy[4][-1:], c=c_list[4])
 
         tup = tuple(each for each in sc)
 
-    if RX_NUM == 3:
-        ini = plt.scatter([rx1[0], rx2[0], rx3[0]], [rx1[1], rx2[1], rx3[1]], c="k")
+    if Config.RX_NUM == 3:
+        ini = plt.scatter([Config.rx1[0], Config.rx2[0], Config.rx3[0]], [Config.rx1[1], Config.rx2[1], Config.rx3[1]], c="k")
     else:
-        ini = plt.scatter([rx1[0], rx2[0], rx3[0], rx4[0]],
-                          [rx1[1], rx2[1], rx3[1], rx4[1]], c="k")
+        ini = plt.scatter([Config.rx1[0], Config.rx2[0], Config.rx3[0], Config.rx4[0]],
+                          [Config.rx1[1],Config. rx2[1], Config.rx3[1], Config.rx4[1]], c="k")
     tup += (ini,)
     # print(re_x)
     if len(re_x) > 0:  # 矩形坐标有数据，绘制矩形
@@ -331,7 +332,7 @@ def plot_update(i):
         # dx = (reXCopy[0] + reXCopy[1])/2 - avg_x
         # dy = (reYCopy[0] + reYCopy[1])/2 - avg_y
 
-        arr = plt.arrow(avg_x, avg_y, unitized_dx * (CAR_LENGTH / 2), unitized_dy * (CAR_LENGTH / 2), head_width=0.3,
+        arr = plt.arrow(avg_x, avg_y, unitized_dx * (Config.CAR_LENGTH / 2), unitized_dy * (Config.CAR_LENGTH / 2), head_width=0.3,
                         length_includes_head=True, fc='b', ec='r')
 
         reXCopy.append(reXCopy[0])
@@ -363,31 +364,31 @@ def plot_update(i):
 
 def save_data(tag_id, tx_location, dis_list, fp_rssi, rx_rssi, acc_data):
     global ri
-    ri[tag_id - TX_STR_NUM] += 1
-    ws.write(ri[tag_id - TX_STR_NUM], 0 + 3 * (tag_id - TX_STR_NUM), tx_location[0])
-    ws.write(ri[tag_id - TX_STR_NUM], 1 + 3 * (tag_id - TX_STR_NUM), tx_location[1])
+    ri[tag_id - Config.TX_STR_NUM] += 1
+    ws.write(ri[tag_id - Config.TX_STR_NUM], 0 + 3 * (tag_id - Config.TX_STR_NUM), tx_location[0])
+    ws.write(ri[tag_id - Config.TX_STR_NUM], 1 + 3 * (tag_id - Config.TX_STR_NUM), tx_location[1])
 
     if dis_list is not None:
-        ws.write(ri[tag_id - TX_STR_NUM], 3 + 3 * (tag_id - TX_STR_NUM), dis_list[0])
-        ws.write(ri[tag_id - TX_STR_NUM], 4 + 3 * (tag_id - TX_STR_NUM), dis_list[1])
-        ws.write(ri[tag_id - TX_STR_NUM], 5 + 3 * (tag_id - TX_STR_NUM), dis_list[2])
+        ws.write(ri[tag_id - Config.TX_STR_NUM], 3 + 3 * (tag_id - Config.TX_STR_NUM), dis_list[0])
+        ws.write(ri[tag_id - Config.TX_STR_NUM], 4 + 3 * (tag_id - Config.TX_STR_NUM), dis_list[1])
+        ws.write(ri[tag_id - Config.TX_STR_NUM], 5 + 3 * (tag_id - Config.TX_STR_NUM), dis_list[2])
 
     if fp_rssi is not None:
-        ws.write(ri[tag_id - TX_STR_NUM], 7 + 3 * (tag_id - TX_STR_NUM), fp_rssi[0])
-        ws.write(ri[tag_id - TX_STR_NUM], 8 + 3 * (tag_id - TX_STR_NUM), fp_rssi[1])
-        ws.write(ri[tag_id - TX_STR_NUM], 9 + 3 * (tag_id - TX_STR_NUM), fp_rssi[2])
+        ws.write(ri[tag_id - Config.TX_STR_NUM], 7 + 3 * (tag_id - Config.TX_STR_NUM), fp_rssi[0])
+        ws.write(ri[tag_id - Config.TX_STR_NUM], 8 + 3 * (tag_id - Config.TX_STR_NUM), fp_rssi[1])
+        ws.write(ri[tag_id - Config.TX_STR_NUM], 9 + 3 * (tag_id - Config.TX_STR_NUM), fp_rssi[2])
 
     if rx_rssi is not None:
-        ws.write(ri[tag_id - TX_STR_NUM], 11 + 3 * (tag_id - TX_STR_NUM), rx_rssi[0])
-        ws.write(ri[tag_id - TX_STR_NUM], 12 + 3 * (tag_id - TX_STR_NUM), rx_rssi[1])
-        ws.write(ri[tag_id - TX_STR_NUM], 13 + 3 * (tag_id - TX_STR_NUM), rx_rssi[2])
+        ws.write(ri[tag_id - Config.TX_STR_NUM], 11 + 3 * (tag_id - Config.TX_STR_NUM), rx_rssi[0])
+        ws.write(ri[tag_id - Config.TX_STR_NUM], 12 + 3 * (tag_id - Config.TX_STR_NUM), rx_rssi[1])
+        ws.write(ri[tag_id - Config.TX_STR_NUM], 13 + 3 * (tag_id - Config.TX_STR_NUM), rx_rssi[2])
 
     if acc_data is not None:
-        ws.write(ri[tag_id - TX_STR_NUM], 15 + 3 * (tag_id - TX_STR_NUM), acc_data[0])
-        ws.write(ri[tag_id - TX_STR_NUM], 16 + 3 * (tag_id - TX_STR_NUM), acc_data[1])
-        ws.write(ri[tag_id - TX_STR_NUM], 17 + 3 * (tag_id - TX_STR_NUM), acc_data[2])
+        ws.write(ri[tag_id - Config.TX_STR_NUM], 15 + 3 * (tag_id - Config.TX_STR_NUM), acc_data[0])
+        ws.write(ri[tag_id - Config.TX_STR_NUM], 16 + 3 * (tag_id - Config.TX_STR_NUM), acc_data[1])
+        ws.write(ri[tag_id - Config.TX_STR_NUM], 17 + 3 * (tag_id - Config.TX_STR_NUM), acc_data[2])
 
-    wb.save(W_DATA_FILE_NAME)
+    wb.save("data/" + Config.W_DATA_FILE_NAME)
 
 
 def warnSystem(client):
@@ -404,7 +405,7 @@ def warnSystem(client):
 
 
 def dispose_client_request(client, tcp_client_address=0):
-    if TDOA_FLAG:
+    if Config.TDOA_FLAG:
 
         while True:
 
@@ -442,7 +443,7 @@ def dispose_client_request(client, tcp_client_address=0):
 
 
 def handle_uart_data():
-    ser = serial.Serial(RX_COM, 115200, parity=serial.PARITY_NONE, stopbits=1, bytesize=8)
+    ser = serial.Serial('COM'+Config.RX_COM, 115200, parity=serial.PARITY_NONE, stopbits=1, bytesize=8)
 
     while True:
         data = ser.read(32)
@@ -479,7 +480,7 @@ def openData():
     #     smooth(R_DATA_FILE_NAME, "data/new_data.xls")
     #     df = pd.read_excel("data/new_data.xls")
     # else:
-    df = pd.read_excel(R_DATA_FILE_NAME)
+    df = pd.read_excel("data/" + Config.R_DATA_FILE_NAME)
     data = df.values
     # print("获取到所有的值:\n{}".format(data))
 
@@ -490,7 +491,7 @@ def openData():
     # print(len(data), TX_NUM)
 
     for k in range(len(data)):
-        for j in range(TX_NUM):
+        for j in range(Config.TX_NUM):
             # print(data[k][3 * j])
             if not math.isnan(data[k][3 * j]):
                 # print(data[i][3*j],data[i][3*j+1])
@@ -503,20 +504,23 @@ def openData():
                     "area_location": [re_x, re_y]
                 }
                 print(json.dumps(json_data))
+                if Config.INSERT_DATABASE_FLAG:
+                    insert(5, [float(data[k][3 * j]), float(data[k][3 * j + 1])], 0)
 
-                if k >= vaildIndexStart and j == 4 and HAVE_HUM:
+                if k >= vaildIndexStart and j == 4 and Config.HAVE_HUM:
                     testNum += 1
                     if not isSafe:
                         warnNum += 1
                     # print("当前概率：", calculateRate(warnNum, testNum))
 
         time.sleep(0.2)  # 控制读取数据的速度
+    close_dao()
 
 
 def openDataV2():
     global nlosFlag
 
-    df = pd.read_excel(R_DATA_FILE_NAME)
+    df = pd.read_excel("data/" + Config.R_DATA_FILE_NAME)
     data = df.values
 
     # change_index = [29, 46, 59, 95, 111, 122, 141, 155, 165, 182]
@@ -538,7 +542,7 @@ def openDataV2():
             nlos1 = pending_nlos(data[k][12], data[k][8], data[k][4])
             nlos2 = pending_nlos(data[k][13], data[k][9], data[k][5])
 
-            if nlos0 + nlos1 + nlos2 > 1 and NLOS_FIX_FLAG:
+            if nlos0 + nlos1 + nlos2 > 1 and Config.NLOS_FIX_FLAG:
                 # 引入imu测量加速度
                 # print("补偿前：", tx_location)
                 tx_location = merge_location(5, tx_location, acc_data, nlos0 + nlos1 + nlos2)
@@ -556,6 +560,8 @@ def openDataV2():
                 "tag_id": 5
             }
             print(json.dumps(json_data))
+            if Config.INSERT_DATABASE_FLAG:
+                insert(5, tx_location, 1 if nlos0 + nlos1 + nlos2 > 1 else 0)
 
             # 计算RMSE 与 std
             # if k > change_index[now_index]:
@@ -584,6 +590,7 @@ def openDataV2():
 
         time.sleep(0.05)  # 控制读取数据的速度
 
+    close_dao()
     # print("cdf: ", cdf)
 
 

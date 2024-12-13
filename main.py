@@ -10,10 +10,14 @@ import src
 
 if __name__ == '__main__':
 
-    if SAVE_DATA_FLAG:
+    with open('config.json', 'r') as f:
+        variables = json.load(f)
+        set_config(variables)
 
-        if TDOA_FLAG:
-            for i in range(RX_NUM):
+    if Config.SAVE_DATA_FLAG:
+
+        if Config.TDOA_FLAG:
+            for i in range(Config.RX_NUM):
                 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 s.bind(("192.168.1.42", 8081 + i))
                 print("等待主基站接入")
@@ -36,21 +40,19 @@ if __name__ == '__main__':
             # thd.start()
             # 打开串口
 
-            thd = threading.Thread(target=src.handle_uart_data, args=())
-            thd.setDaemon(True)
-            thd.start()
+            src.handle_uart_data()
 
     else:
 
         # thd = threading.Thread(target=src.openData, args=())
         # thd.setDaemon(True)
         # thd.start()
-        if R_DATA_FILE_NAME.startswith("data_nlos_imu_"):
+        if Config.R_DATA_FILE_NAME.startswith("data_nlos_imu_"):
             src.openDataV2()
         else:
             src.openData()
 
-    if WARN_MOD_FLAG:
+    if Config.WARN_MOD_FLAG:
 
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         host = socket.gethostbyname(socket.gethostname())  # 获取本地ip
